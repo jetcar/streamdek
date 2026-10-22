@@ -39,6 +39,27 @@ function millis(value: unknown): number | undefined {
   return value == null ? undefined : Number(value);
 }
 
+function nonEmpty(value: unknown): string | undefined {
+  const text = value == null ? '' : String(value).trim();
+  return text || undefined;
+}
+
+export function codexThreadTitle(row: {
+  cwd?: unknown;
+  name?: unknown;
+  title?: unknown;
+  preview?: unknown;
+}): string {
+  const cwd = nonEmpty(row.cwd)?.replace(/[\\/]+$/, '');
+  const folder = cwd?.split(/[\\/]/).at(-1);
+  const usableFolder = folder && !/^[A-Za-z]:$/.test(folder) ? folder : undefined;
+  return usableFolder
+    ?? nonEmpty(row.name)
+    ?? nonEmpty(row.title)
+    ?? nonEmpty(row.preview)
+    ?? 'Untitled task';
+}
+
 function latestTurns(path: string): Map<string, { status: string; turnId: string }> {
   return withDatabase(path, (db) => {
     const rows = db.prepare(`
@@ -92,8 +113,7 @@ function readThreads(paths: Paths): ThreadRecord[] {
 
   return withDatabase(paths.state, (db) => {
     const rows = db.prepare(`
-      SELECT id, COALESCE(NULLIF(title, ''), NULLIF(name, ''), NULLIF(preview, ''), 'Untitled task') AS title,
-        updated_at
+      SELECT id, cwd, name, title, preview, updated_at
       FROM threads
       WHERE archived = 0
       ORDER BY updated_at DESC
@@ -105,7 +125,7 @@ function readThreads(paths: Paths): ThreadRecord[] {
       const turn = turns.get(id);
       return {
         id,
-        title: String(row.title),
+        title: codexThreadTitle(row),
         updatedAt: secondsToMs(row.updated_at),
         turnStatus: turn?.status,
         hasQuestions: turn ? askingTurns.has(turn.turnId) : false,

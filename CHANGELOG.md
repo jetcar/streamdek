@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1 - 2026-10-22
+
+### Fixed
+
+- Codex cards now show the working-folder name, then the saved session name, instead of defaulting to the first prompt.
+
 ## 1.4.0 - 2026-10-22
 
 ### Added
