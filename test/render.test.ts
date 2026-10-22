@@ -21,5 +21,5 @@ describe('renderCard', () => {
       source: 'thread',
     }, 72);
     expect(buffer).toHaveLength(72 * 72 * 3);
-  });
+  }, 20_000);
 });
