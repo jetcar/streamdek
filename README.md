@@ -4,6 +4,8 @@ Show live Codex and Claude Code sessions plus active Codex scheduled automations
 
 Supports Windows, macOS, and Linux without the Elgato desktop application.
 
+![Streamdek showing live AI coding-agent statuses on a Stream Deck](docs/images/streamdek-dashboard.png)
+
 ## Cards
 
 - Pink `ASKING`: waiting for an answer.
