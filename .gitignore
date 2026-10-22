@@ -1,0 +1,9 @@
+node_modules/
+dist/
+graphify-out/
+.env
+.env.*
+*.log
+*.pid
+.DS_Store
+Thumbs.db
