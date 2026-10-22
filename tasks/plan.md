@@ -8,3 +8,4 @@
 6. Build, install, launch, and verify against the connected device.
 7. Add portable paths, URL opening, and native macOS/Linux startup.
 8. Verify all supported platforms in continuous integration.
+9. Build versioned platform archives and publish them from semantic version tags.

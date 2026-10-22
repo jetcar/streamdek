@@ -28,7 +28,7 @@ Quit the Elgato Stream Deck application if it is installed because only one appl
 
 ## Install
 
-Clone the repository, enter its directory, then run the command for your platform:
+Download and extract the archive for your operating system from the [latest release](https://github.com/jetcar/streamdek/releases/latest), then run its installer:
 
 | Platform | Install and start at login |
 |---|---|
@@ -37,6 +37,8 @@ Clone the repository, enter its directory, then run the command for your platfor
 | Linux | `./scripts/install-linux.sh` |
 
 The Linux installer adds the upstream desktop-user udev permissions and may ask for `sudo`. Unplug and reconnect the Stream Deck once after the first installation.
+
+To install from source instead, clone the repository and run the same platform command. Source installation also builds the TypeScript code locally.
 
 ## Uninstall
 

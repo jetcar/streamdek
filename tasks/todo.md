@@ -11,3 +11,4 @@
 - [x] Add macOS LaunchAgent installation
 - [x] Add Linux systemd and udev installation
 - [x] Add Windows, macOS, and Linux CI
+- [x] Add automated platform release archives and checksums
