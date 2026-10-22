@@ -3,6 +3,7 @@ export type CardStatus = 'asking' | 'thinking' | 'error' | 'scheduled' | 'done' 
 export interface ThreadRecord {
   id: string;
   title: string;
+  subtitle?: string;
   updatedAt: number;
   turnStatus?: string;
   hasQuestions?: boolean;
@@ -28,6 +29,7 @@ export type DeckTarget =
 export interface DeckCard {
   id: string;
   title: string;
+  subtitle?: string;
   status: CardStatus;
   timestamp: number;
   target: DeckTarget;

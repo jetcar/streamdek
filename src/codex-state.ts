@@ -44,6 +44,18 @@ function nonEmpty(value: unknown): string | undefined {
   return text || undefined;
 }
 
+export function agentMessageDetails(itemJson: string): { hasQuestions: boolean; response?: string } {
+  try {
+    const item = JSON.parse(itemJson) as { questions?: unknown[]; text?: unknown };
+    return {
+      hasQuestions: Array.isArray(item.questions) && item.questions.length > 0,
+      response: nonEmpty(item.text),
+    };
+  } catch {
+    return { hasQuestions: false };
+  }
+}
+
 export function codexThreadTitle(row: {
   cwd?: unknown;
   name?: unknown;
@@ -79,37 +91,30 @@ function latestTurns(path: string): Map<string, { status: string; turnId: string
   });
 }
 
-function turnsWithQuestions(path: string, turnIds: string[]): Set<string> {
-  if (turnIds.length === 0) return new Set();
+function turnDetails(path: string, turnIds: string[]): Map<string, { hasQuestions: boolean; response?: string }> {
+  if (turnIds.length === 0) return new Map();
   return withDatabase(path, (db) => {
-    const statement = db.prepare(`
-      SELECT item_json
-      FROM thread_items
-      WHERE turn_id = ? AND item_type = 'agentMessage'
-      ORDER BY rollout_ordinal DESC
-      LIMIT 1
-    `);
-    const asking = new Set<string>();
-    for (const turnId of turnIds) {
-      const row = statement.get(turnId) as SqlRow | undefined;
-      if (!row?.item_json) continue;
-      try {
-        const item = JSON.parse(String(row.item_json)) as { questions?: unknown[] };
-        if (Array.isArray(item.questions) && item.questions.length > 0) asking.add(turnId);
-      } catch {
-        // Ignore a partially written or unfamiliar item.
-      }
-    }
-    return asking;
+    const placeholders = turnIds.map(() => '?').join(', ');
+    const rows = db.prepare(`
+      SELECT turn_id, item_json
+      FROM (
+        SELECT turn_id, item_json,
+          ROW_NUMBER() OVER (PARTITION BY turn_id ORDER BY rollout_ordinal DESC) AS row_number
+        FROM thread_items
+        WHERE item_type = 'agentMessage' AND turn_id IN (${placeholders})
+      )
+      WHERE row_number = 1
+    `).all(...turnIds) as SqlRow[];
+    return new Map(rows.map((row) => [
+      String(row.turn_id),
+      agentMessageDetails(String(row.item_json)),
+    ]));
   });
 }
 
 function readThreads(paths: Paths): ThreadRecord[] {
   const turns = latestTurns(paths.history);
-  const askingTurns = turnsWithQuestions(
-    paths.history,
-    [...turns.values()].filter((turn) => turn.status === 'inProgress').map((turn) => turn.turnId),
-  );
+  const details = turnDetails(paths.history, [...turns.values()].map((turn) => turn.turnId));
 
   return withDatabase(paths.state, (db) => {
     const rows = db.prepare(`
@@ -123,12 +128,14 @@ function readThreads(paths: Paths): ThreadRecord[] {
     return rows.map((row) => {
       const id = String(row.id);
       const turn = turns.get(id);
+      const detail = turn ? details.get(turn.turnId) : undefined;
       return {
         id,
         title: codexThreadTitle(row),
+        subtitle: detail?.response,
         updatedAt: secondsToMs(row.updated_at),
         turnStatus: turn?.status,
-        hasQuestions: turn ? askingTurns.has(turn.turnId) : false,
+        hasQuestions: detail?.hasQuestions ?? false,
       };
     });
   });

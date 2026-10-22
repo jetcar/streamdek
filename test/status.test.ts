@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildCards, relativeTime, threadStatus } from '../src/status.js';
+import { buildCards, relativeTime, stabilizeActiveCards, threadStatus } from '../src/status.js';
 import type { CodexSnapshot, ThreadRecord } from '../src/types.js';
 
 const NOW = Date.UTC(2026, 9, 22, 12, 0, 0);
@@ -94,6 +94,14 @@ describe('buildCards', () => {
     });
   });
 
+  it('carries the latest response into session cards', () => {
+    const snapshot: CodexSnapshot = {
+      threads: [thread({ subtitle: 'Tests pass and the release is ready.' })],
+      automations: [],
+    };
+    expect(buildCards(snapshot, { now: NOW })[0].subtitle).toBe('Tests pass and the release is ready.');
+  });
+
   it('groups Claude routine runs under the latest session', () => {
     const snapshot: CodexSnapshot = {
       threads: [
@@ -126,6 +134,33 @@ describe('buildCards', () => {
       status: 'thinking',
       target: { kind: 'claude-session', sessionId: 'routine-latest' },
     });
+  });
+});
+
+describe('stabilizeActiveCards', () => {
+  it('keeps active sessions on their previous buttons while other cards reorder', () => {
+    const previous = buildCards({
+      threads: [
+        thread({ id: 'active-a', turnStatus: 'inProgress', updatedAt: NOW - 1_000 }),
+        thread({ id: 'active-b', turnStatus: 'inProgress', updatedAt: NOW - 2_000 }),
+        thread({ id: 'done', updatedAt: NOW - 3_000 }),
+      ],
+      automations: [],
+    }, { now: NOW });
+    const next = buildCards({
+      threads: [
+        thread({ id: 'active-b', turnStatus: 'inProgress', updatedAt: NOW }),
+        thread({ id: 'done', updatedAt: NOW - 500 }),
+        thread({ id: 'active-a', turnStatus: 'inProgress', updatedAt: NOW - 4_000 }),
+      ],
+      automations: [],
+    }, { now: NOW });
+
+    expect(stabilizeActiveCards(previous, next).map((card) => card.id)).toEqual([
+      'codex:active-a',
+      'codex:active-b',
+      'codex:done',
+    ]);
   });
 });
 

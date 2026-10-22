@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.5.0 - 2026-10-22
+
+### Added
+
+- Session cards show a compact line from the agent's latest response beneath the folder or session name.
+
+### Changed
+
+- Active working and asking sessions retain their current button position while their activity and response text update.
+- Codex response reads are batched into a single history query.
+
 ## 1.4.1 - 2026-10-22
 
 ### Fixed

@@ -27,6 +27,7 @@ function threadCard(thread: ThreadRecord): DeckCard {
       ? `claude-routine:${thread.routineName}`
       : `${provider}:${thread.id}`,
     title: thread.title || 'Untitled task',
+    subtitle: thread.subtitle,
     status: threadStatus(thread),
     timestamp: thread.updatedAt,
     target: provider === 'claude'
@@ -34,6 +35,35 @@ function threadCard(thread: ThreadRecord): DeckCard {
       : { kind: 'url', value: `codex://threads/${encodeURIComponent(thread.id)}` },
     source: provider === 'claude' ? 'claude' : 'thread',
   };
+}
+
+function isActiveSession(card: DeckCard): boolean {
+  return card.source !== 'automation' && (card.status === 'thinking' || card.status === 'asking');
+}
+
+export function stabilizeActiveCards(previous: DeckCard[], next: DeckCard[]): DeckCard[] {
+  const automationIndex = next.findIndex((card) => card.source === 'automation');
+  const sessionCount = automationIndex < 0 ? next.length : automationIndex;
+  const nextSessions = next.slice(0, sessionCount);
+  const nextById = new Map(nextSessions.map((card) => [card.id, card]));
+  const placed = new Set<string>();
+  const stable = new Array<DeckCard | undefined>(sessionCount);
+
+  previous.slice(0, sessionCount).forEach((card, index) => {
+    const updated = nextById.get(card.id);
+    if (updated && isActiveSession(card) && isActiveSession(updated)) {
+      stable[index] = updated;
+      placed.add(updated.id);
+    }
+  });
+
+  const remaining = nextSessions.filter((card) => !placed.has(card.id));
+  let remainingIndex = 0;
+  for (let index = 0; index < stable.length; index += 1) {
+    stable[index] ??= remaining[remainingIndex++];
+  }
+
+  return [...stable.filter((card): card is DeckCard => card != null), ...next.slice(sessionCount)];
 }
 
 function latestRoutineRuns(threads: ThreadRecord[]): ThreadRecord[] {

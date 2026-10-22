@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderCard, titleLines } from '../src/render.js';
+import { cardTextLines, renderCard, titleLines } from '../src/render.js';
 
 describe('titleLines', () => {
   it('wraps long titles into two small lines', () => {
@@ -7,6 +7,20 @@ describe('titleLines', () => {
     expect(one.length).toBeLessThanOrEqual(10);
     expect(two.length).toBeLessThanOrEqual(10);
     expect(two.endsWith('…')).toBe(true);
+  });
+});
+
+describe('cardTextLines', () => {
+  it('uses the second line for the latest response', () => {
+    expect(cardTextLines({
+      id: 'codex:1',
+      title: 'streamdek',
+      subtitle: 'Tests pass and release is ready',
+      status: 'thinking',
+      timestamp: Date.now(),
+      target: { kind: 'url', value: 'codex://threads/1' },
+      source: 'thread',
+    })).toEqual(['streamdek', 'Tests pass…']);
   });
 });
 

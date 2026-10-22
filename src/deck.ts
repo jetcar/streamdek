@@ -3,6 +3,7 @@ import type { StreamDeck } from '@elgato-stream-deck/core';
 import { createHash } from 'node:crypto';
 import { openDeckTarget } from './platform.js';
 import { renderBlank, renderCard } from './render.js';
+import { stabilizeActiveCards } from './status.js';
 import type { DeckCard } from './types.js';
 
 export type Log = (message: string, error?: unknown) => void;
@@ -49,13 +50,13 @@ export class DeckController {
     const buttons = deck.modelInfo.controls
       .filter((control) => control.type === 'button' && control.feedbackType === 'lcd')
       .sort((a, b) => a.index - b.index);
-    this.cards = cards.slice(0, buttons.length);
+    this.cards = stabilizeActiveCards(this.cards, cards).slice(0, buttons.length);
     const now = Date.now();
 
     await Promise.all(buttons.map(async (button, position) => {
       const card = this.cards[position];
       const minute = Math.floor(now / 60_000);
-      const hash = createHash('sha1').update(card ? `${card.id}|${card.status}|${card.title}|${card.timestamp}|${minute}` : 'blank').digest('hex');
+      const hash = createHash('sha1').update(card ? `${card.id}|${card.status}|${card.title}|${card.subtitle ?? ''}|${card.timestamp}|${minute}` : 'blank').digest('hex');
       if (this.hashes[position] === hash) return;
       const image = card
         ? await renderCard(card, button.pixelSize.width, now)

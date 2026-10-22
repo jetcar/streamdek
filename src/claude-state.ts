@@ -46,6 +46,16 @@ function scheduledTaskName(entry: ClaudeMessage): string | undefined {
   return undefined;
 }
 
+function responseText(entry: ClaudeMessage): string | undefined {
+  const content = entry.message?.content;
+  const text = typeof content === 'string'
+    ? content
+    : Array.isArray(content)
+      ? content.filter((block) => block.type === 'text').map((block) => block.text).join(' ')
+      : '';
+  return text.replace(/\s+/g, ' ').trim() || undefined;
+}
+
 export function parseClaudeTranscript(content: string, fallbackId: string, updatedAt: number): ThreadRecord | undefined {
   let id = fallbackId;
   let cwd: string | undefined;
@@ -54,6 +64,7 @@ export function parseClaudeTranscript(content: string, fallbackId: string, updat
   let routineName: string | undefined;
   let turnStatus: string | undefined;
   let hasQuestions = false;
+  let subtitle: string | undefined;
   let sawConversation = false;
 
   for (const line of content.split(/\r?\n/)) {
@@ -94,6 +105,7 @@ export function parseClaudeTranscript(content: string, fallbackId: string, updat
       continue;
     }
 
+    subtitle = responseText(entry) ?? subtitle;
     const blocks = Array.isArray(entry.message?.content) ? entry.message.content : [];
     const tools = blocks.filter((item) => item.type === 'tool_use');
     if (tools.length > 0) {
@@ -112,6 +124,7 @@ export function parseClaudeTranscript(content: string, fallbackId: string, updat
   return {
     id,
     title: cleanTitle(cwd, sessionName, routineName, id),
+    subtitle,
     updatedAt,
     turnStatus,
     hasQuestions,

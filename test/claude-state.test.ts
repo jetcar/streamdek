@@ -17,6 +17,7 @@ describe('parseClaudeTranscript', () => {
     expect(record).toMatchObject({
       id: 'session-1',
       title: 'app',
+      subtitle: 'Done',
       updatedAt: UPDATED_AT,
       turnStatus: 'completed',
       provider: 'claude',

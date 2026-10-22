@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { codexThreadTitle } from '../src/codex-state.js';
+import { agentMessageDetails, codexThreadTitle } from '../src/codex-state.js';
 
 describe('codexThreadTitle', () => {
   it('prefers the working folder over the saved session name and first prompt', () => {
@@ -27,5 +27,18 @@ describe('codexThreadTitle', () => {
       title: 'Fallback task title',
       preview: 'First prompt',
     })).toBe('Fallback task title');
+  });
+});
+
+describe('agentMessageDetails', () => {
+  it('extracts the last response text and pending questions', () => {
+    expect(agentMessageDetails(JSON.stringify({
+      type: 'agentMessage',
+      text: 'Tests pass and the release is ready.',
+      questions: [{ id: 'confirm' }],
+    }))).toEqual({
+      hasQuestions: true,
+      response: 'Tests pass and the release is ready.',
+    });
   });
 });
