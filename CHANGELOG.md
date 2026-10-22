@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0 - 2026-10-22
+
+### Added
+
+- Claude Code scheduled-task runs are grouped into one card per routine.
+- Each routine card shows and reopens its most recent run.
+
 ## 1.2.1 - 2026-10-22
 
 ### Changed
