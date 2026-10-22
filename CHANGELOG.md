@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1 - 2026-10-22
+
+### Changed
+
+- Claude Code cards now show the working-folder name, falling back to the saved session name and session ID.
+
 ## 1.2.0 - 2026-10-22
 
 ### Added
