@@ -13,6 +13,7 @@ interface ClaudeMessage {
   customTitle?: string;
   aiTitle?: string;
   agentName?: string;
+  content?: string;
   message?: {
     role?: string;
     stop_reason?: string | null;
@@ -20,9 +21,29 @@ interface ClaudeMessage {
   };
 }
 
-function cleanTitle(cwd: string | undefined, sessionName: string | undefined, id: string): string {
+function cleanTitle(
+  cwd: string | undefined,
+  sessionName: string | undefined,
+  routineName: string | undefined,
+  id: string,
+): string {
+  if (routineName) return routineName;
   if (cwd) return basename(cwd);
   return sessionName?.trim().slice(0, 80) || id;
+}
+
+function scheduledTaskName(entry: ClaudeMessage): string | undefined {
+  const messageContent = entry.message?.content;
+  const content = [
+    entry.content,
+    typeof messageContent === 'string' ? messageContent : undefined,
+    ...(Array.isArray(messageContent) ? messageContent.map((block) => block.text) : []),
+  ].filter((value): value is string => value != null);
+  for (const value of content) {
+    const match = value.match(/<scheduled-task\b[^>]*\bname=(["'])([^"']+)\1/i);
+    if (match?.[2]) return match[2].trim().slice(0, 80);
+  }
+  return undefined;
 }
 
 export function parseClaudeTranscript(content: string, fallbackId: string, updatedAt: number): ThreadRecord | undefined {
@@ -30,6 +51,7 @@ export function parseClaudeTranscript(content: string, fallbackId: string, updat
   let cwd: string | undefined;
   let sessionName: string | undefined;
   let sessionNamePriority = 0;
+  let routineName: string | undefined;
   let turnStatus: string | undefined;
   let hasQuestions = false;
   let sawConversation = false;
@@ -45,6 +67,7 @@ export function parseClaudeTranscript(content: string, fallbackId: string, updat
 
     if (entry.sessionId) id = entry.sessionId;
     if (entry.cwd) cwd = entry.cwd;
+    routineName ??= scheduledTaskName(entry);
     const named = entry.type === 'custom-title'
       ? { value: entry.customTitle, priority: 3 }
       : entry.type === 'ai-title'
@@ -88,11 +111,12 @@ export function parseClaudeTranscript(content: string, fallbackId: string, updat
   if (!sawConversation) return undefined;
   return {
     id,
-    title: cleanTitle(cwd, sessionName, id),
+    title: cleanTitle(cwd, sessionName, routineName, id),
     updatedAt,
     turnStatus,
     hasQuestions,
     provider: 'claude',
+    routineName,
   };
 }
 

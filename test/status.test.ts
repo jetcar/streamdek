@@ -80,6 +80,40 @@ describe('buildCards', () => {
       target: { kind: 'claude-session', sessionId: 'claude-1' },
     });
   });
+
+  it('groups Claude routine runs under the latest session', () => {
+    const snapshot: CodexSnapshot = {
+      threads: [
+        thread({
+          id: 'routine-old',
+          title: 'nightly-build',
+          provider: 'claude',
+          routineName: 'nightly-build',
+          turnStatus: 'failed',
+          updatedAt: NOW - 60_000,
+        }),
+        thread({
+          id: 'routine-latest',
+          title: 'nightly-build',
+          provider: 'claude',
+          routineName: 'nightly-build',
+          turnStatus: 'inProgress',
+          updatedAt: NOW,
+        }),
+        thread({ id: 'ordinary', title: 'app', provider: 'claude', updatedAt: NOW - 1_000 }),
+      ],
+      automations: [],
+    };
+
+    const cards = buildCards(snapshot, { now: NOW });
+    expect(cards).toHaveLength(2);
+    expect(cards[0]).toMatchObject({
+      id: 'claude-routine:nightly-build',
+      title: 'nightly-build',
+      status: 'thinking',
+      target: { kind: 'claude-session', sessionId: 'routine-latest' },
+    });
+  });
 });
 
 describe('relativeTime', () => {

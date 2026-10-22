@@ -32,7 +32,9 @@ function automationStatus(automation: AutomationRecord): CardStatus {
 function threadCard(thread: ThreadRecord): DeckCard {
   const provider = thread.provider ?? 'codex';
   return {
-    id: `${provider}:${thread.id}`,
+    id: provider === 'claude' && thread.routineName
+      ? `claude-routine:${thread.routineName}`
+      : `${provider}:${thread.id}`,
     title: thread.title || 'Untitled task',
     status: threadStatus(thread),
     timestamp: thread.updatedAt,
@@ -41,6 +43,20 @@ function threadCard(thread: ThreadRecord): DeckCard {
       : { kind: 'url', value: `codex://threads/${encodeURIComponent(thread.id)}` },
     source: provider === 'claude' ? 'claude' : 'thread',
   };
+}
+
+function latestRoutineRuns(threads: ThreadRecord[]): ThreadRecord[] {
+  const ordinary: ThreadRecord[] = [];
+  const routines = new Map<string, ThreadRecord>();
+  for (const thread of threads) {
+    if (thread.provider !== 'claude' || !thread.routineName) {
+      ordinary.push(thread);
+      continue;
+    }
+    const current = routines.get(thread.routineName);
+    if (!current || thread.updatedAt > current.updatedAt) routines.set(thread.routineName, thread);
+  }
+  return [...ordinary, ...routines.values()];
 }
 
 function automationCard(automation: AutomationRecord, now: number): DeckCard {
@@ -63,7 +79,7 @@ export function buildCards(snapshot: CodexSnapshot, options: CardOptions = {}): 
   const staleAfterMs = options.staleAfterMs ?? 24 * 60 * 60 * 1000;
   const limit = options.limit ?? 15;
 
-  const threads = snapshot.threads
+  const threads = latestRoutineRuns(snapshot.threads)
     .filter((thread) => now - thread.updatedAt <= staleAfterMs)
     .map(threadCard);
 

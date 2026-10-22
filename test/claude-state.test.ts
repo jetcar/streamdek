@@ -42,6 +42,23 @@ describe('parseClaudeTranscript', () => {
     expect(record?.title).toBe('session-5');
   });
 
+  it('identifies scheduled task runs by routine name', () => {
+    const record = parseClaudeTranscript([
+      line({
+        type: 'queue-operation',
+        content: '<scheduled-task name="book-writer" file="/home/user/.claude/scheduled-tasks/book-writer/SKILL.md">',
+      }),
+      line({ type: 'user', sessionId: 'routine-run-1', cwd: '/repo/book', message: { content: 'Run it' } }),
+    ].join('\n'), 'fallback', UPDATED_AT);
+
+    expect(record).toMatchObject({
+      id: 'routine-run-1',
+      title: 'book-writer',
+      routineName: 'book-writer',
+      provider: 'claude',
+    });
+  });
+
   it('detects a pending Claude question', () => {
     const record = parseClaudeTranscript([
       line({ type: 'user', message: { content: 'Build a UI' } }),

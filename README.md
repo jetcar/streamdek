@@ -14,7 +14,7 @@ Supports Windows, macOS, and Linux without the Elgato desktop application.
 - Gray `IDLE`: a recent task without a recorded run.
 
 Ordinary tasks disappear after 24 hours without activity. Active automations stay visible.
-Claude Code cards show the working-folder name, falling back to the saved session name, include a `CLAUDE` footer, and reopen in a new terminal with `claude --resume`.
+Claude Code cards show the working-folder name, falling back to the saved session name, include a `CLAUDE` footer, and reopen in a new terminal with `claude --resume`. Scheduled-task runs are grouped into one card per routine; its status and click target follow the most recent run.
 
 ## Requirements
 

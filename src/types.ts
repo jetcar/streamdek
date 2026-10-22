@@ -7,6 +7,7 @@ export interface ThreadRecord {
   turnStatus?: string;
   hasQuestions?: boolean;
   provider?: 'codex' | 'claude';
+  routineName?: string;
 }
 
 export interface AutomationRecord {
