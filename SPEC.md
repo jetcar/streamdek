@@ -2,7 +2,7 @@
 
 ## Goal
 
-Show current Codex task and automation status on a connected 15-key Stream Deck MK.2. Pressing a key opens the related Codex task.
+Show current Codex task and automation status on a connected Stream Deck on Windows, macOS, or Linux. Pressing a key opens the related Codex task.
 
 ## Behaviour
 
@@ -12,8 +12,9 @@ Show current Codex task and automation status on a connected 15-key Stream Deck 
 - Keep active scheduled automations visible regardless of age.
 - Pressing a task card opens `codex://threads/<thread-id>`.
 - Pressing an automation card opens its target task when available, otherwise the Codex automations page.
-- Run in the background after Windows sign-in.
+- Run in the background after sign-in using Windows Run, a macOS LaunchAgent, or a Linux systemd user service.
 - Access Codex databases read-only.
+- Use each operating system's standard URL opener for Codex deep links.
 
 ## Status mapping
 
@@ -26,7 +27,7 @@ Show current Codex task and automation status on a connected 15-key Stream Deck 
 
 ## Acceptance criteria
 
-- The attached Stream Deck MK.2 opens successfully.
+- A supported attached Stream Deck opens successfully on Windows, macOS, and Linux.
 - Its keys display live Codex task/automation cards.
 - A key press launches the mapped Codex deep link.
 - Entries older than 24 hours are absent unless they are active automations.

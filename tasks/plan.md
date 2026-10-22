@@ -6,3 +6,5 @@
 4. Drive the Stream Deck and open Codex deep links.
 5. Add background startup scripts, tests, and documentation.
 6. Build, install, launch, and verify against the connected device.
+7. Add portable paths, URL opening, and native macOS/Linux startup.
+8. Verify all supported platforms in continuous integration.

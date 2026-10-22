@@ -8,7 +8,7 @@ $runValue = '"{0}" "{1}"' -f $nodePath, $appPath
 
 Push-Location $projectRoot
 try {
-    npm install
+    npm ci
     npm run build
 } finally {
     Pop-Location
