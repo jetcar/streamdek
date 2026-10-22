@@ -18,8 +18,15 @@ xml_escape() {
 }
 
 cd "$project_root"
-npm ci
-npm run build
+if [ -d "$project_root/src" ]; then
+  npm ci
+  npm run build
+elif [ -f "$project_root/dist/app.js" ]; then
+  npm ci --omit=dev
+else
+  echo "Neither source files nor a prebuilt release were found." >&2
+  exit 1
+fi
 
 mkdir -p "$agent_dir" "$state_dir"
 escaped_node=$(xml_escape "$node_path")

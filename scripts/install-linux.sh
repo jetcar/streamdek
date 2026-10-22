@@ -14,8 +14,15 @@ rules_source="$project_root/scripts/50-elgato-stream-deck-user.rules"
 rules_target="/etc/udev/rules.d/50-elgato-stream-deck-user.rules"
 
 cd "$project_root"
-npm ci
-npm run build
+if [ -d "$project_root/src" ]; then
+  npm ci
+  npm run build
+elif [ -f "$project_root/dist/app.js" ]; then
+  npm ci --omit=dev
+else
+  echo "Neither source files nor a prebuilt release were found." >&2
+  exit 1
+fi
 
 if ! command -v systemctl >/dev/null 2>&1; then
   echo "systemd is required for automatic startup." >&2

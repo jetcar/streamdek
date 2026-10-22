@@ -8,8 +8,14 @@ $runValue = '"{0}" "{1}"' -f $nodePath, $appPath
 
 Push-Location $projectRoot
 try {
-    npm ci
-    npm run build
+    if (Test-Path -LiteralPath (Join-Path $projectRoot 'src')) {
+        npm ci
+        npm run build
+    } elseif (Test-Path -LiteralPath $appPath) {
+        npm ci --omit=dev
+    } else {
+        throw 'Neither source files nor a prebuilt release were found.'
+    }
 } finally {
     Pop-Location
 }
