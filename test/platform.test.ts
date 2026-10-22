@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { codexDirectory, opener, runtimeDirectory } from '../src/platform.js';
+import { claudeDirectory, codexDirectory, opener, runtimeDirectory } from '../src/platform.js';
 
 describe('runtimeDirectory', () => {
   it('uses the native state location on every supported platform', () => {
@@ -18,6 +18,13 @@ describe('codexDirectory', () => {
   it('honours CODEX_HOME and falls back to the home directory', () => {
     expect(codexDirectory({ CODEX_HOME: '/opt/codex' }, '/home/me', 'linux')).toBe('/opt/codex');
     expect(codexDirectory({}, '/home/me', 'linux')).toBe('/home/me/.codex');
+  });
+});
+
+describe('claudeDirectory', () => {
+  it('honours CLAUDE_CONFIG_DIR and falls back to the home directory', () => {
+    expect(claudeDirectory({ CLAUDE_CONFIG_DIR: '/opt/claude' }, '/home/me', 'linux')).toBe('/opt/claude');
+    expect(claudeDirectory({}, '/home/me', 'linux')).toBe('/home/me/.claude');
   });
 });
 

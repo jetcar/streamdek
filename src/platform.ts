@@ -29,6 +29,17 @@ export function codexDirectory(
   return env.CODEX_HOME && path.isAbsolute(env.CODEX_HOME) ? env.CODEX_HOME : path.join(home, '.codex');
 }
 
+export function claudeDirectory(
+  env: NodeJS.ProcessEnv = process.env,
+  home = homedir(),
+  platform = process.platform,
+): string {
+  const path = platform === 'win32' ? win32 : posix;
+  return env.CLAUDE_CONFIG_DIR && path.isAbsolute(env.CLAUDE_CONFIG_DIR)
+    ? env.CLAUDE_CONFIG_DIR
+    : path.join(home, '.claude');
+}
+
 export function opener(platform = process.platform): { command: string; args: (url: string) => string[] } {
   const supported = platform as SupportedPlatform;
   if (supported === 'win32') return { command: 'explorer.exe', args: (url) => [url] };

@@ -6,6 +6,7 @@ export interface ThreadRecord {
   updatedAt: number;
   turnStatus?: string;
   hasQuestions?: boolean;
+  provider?: 'codex' | 'claude';
 }
 
 export interface AutomationRecord {
