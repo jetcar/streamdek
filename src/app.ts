@@ -1,6 +1,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CodexStateReader } from './codex-state.js';
+import { ClaudeStateReader } from './claude-state.js';
 import { DeckController } from './deck.js';
 import { runtimeDirectory } from './platform.js';
 import { buildCards } from './status.js';
@@ -39,6 +40,7 @@ if (existsSync(pidPath)) {
 writeFileSync(pidPath, String(process.pid));
 
 const reader = new CodexStateReader();
+const claudeReader = new ClaudeStateReader();
 const controller = new DeckController(log);
 let stopping = false;
 let lastError = '';
@@ -62,6 +64,7 @@ async function tick(): Promise<void> {
       return;
     }
     const snapshot = reader.read();
+    snapshot.threads.push(...claudeReader.read(Date.now() - staleHours * 60 * 60 * 1_000));
     const cards = buildCards(snapshot, { staleAfterMs: staleHours * 60 * 60 * 1_000, limit: 15 });
     await controller.display(cards);
     lastError = '';

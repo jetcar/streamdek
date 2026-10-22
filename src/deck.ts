@@ -1,7 +1,7 @@
 import { listStreamDecks, openStreamDeck } from '@elgato-stream-deck/node';
 import type { StreamDeck } from '@elgato-stream-deck/core';
 import { createHash } from 'node:crypto';
-import { openExternal } from './platform.js';
+import { openDeckTarget } from './platform.js';
 import { renderBlank, renderCard } from './render.js';
 import type { DeckCard } from './types.js';
 
@@ -32,7 +32,7 @@ export class DeckController {
     deck.on('down', (control) => {
       if (control.type !== 'button') return;
       const card = this.cards[control.index];
-      if (card) openExternal(card.targetUrl, this.log);
+      if (card) openDeckTarget(card.target, this.log);
     });
     deck.on('error', (error) => {
       this.disconnected = true;

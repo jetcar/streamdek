@@ -42,7 +42,7 @@ describe('buildCards', () => {
     const cards = buildCards(snapshot, { now: NOW });
     expect(cards).toHaveLength(1);
     expect(cards[0]).toMatchObject({ id: 'automation:nightly', status: 'scheduled' });
-    expect(cards[0].targetUrl).toBe('codex://threads/target-1');
+    expect(cards[0].target).toEqual({ kind: 'url', value: 'codex://threads/target-1' });
   });
 
   it('orders asking before thinking, errors, scheduled, and done', () => {
@@ -66,6 +66,19 @@ describe('buildCards', () => {
       automations: [],
     };
     expect(buildCards(snapshot, { now: NOW, limit: 15 })).toHaveLength(15);
+  });
+
+  it('creates resumable Claude Code cards', () => {
+    const snapshot: CodexSnapshot = {
+      threads: [thread({ id: 'claude-1', provider: 'claude', turnStatus: 'inProgress' })],
+      automations: [],
+    };
+    expect(buildCards(snapshot, { now: NOW })[0]).toMatchObject({
+      id: 'claude:claude-1',
+      source: 'claude',
+      status: 'thinking',
+      target: { kind: 'claude-session', sessionId: 'claude-1' },
+    });
   });
 });
 

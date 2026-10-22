@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { claudeDirectory, codexDirectory, opener, runtimeDirectory } from '../src/platform.js';
+import { claudeDirectory, claudeLauncher, codexDirectory, opener, runtimeDirectory } from '../src/platform.js';
 
 describe('runtimeDirectory', () => {
   it('uses the native state location on every supported platform', () => {
@@ -39,5 +39,21 @@ describe('opener', () => {
 
   it('rejects unsupported platforms', () => {
     expect(() => opener('aix')).toThrow('Unsupported platform');
+  });
+});
+
+describe('claudeLauncher', () => {
+  it.each([
+    ['win32', 'cmd.exe'],
+    ['darwin', 'osascript'],
+    ['linux', 'x-terminal-emulator'],
+  ])('opens a resumable session on %s', (platform, command) => {
+    const launcher = claudeLauncher('session-123', platform);
+    expect(launcher.command).toBe(command);
+    expect(launcher.args.join(' ')).toContain('session-123');
+  });
+
+  it('rejects unsafe session IDs', () => {
+    expect(() => claudeLauncher('session; shutdown', 'linux')).toThrow('Invalid Claude session ID');
   });
 });

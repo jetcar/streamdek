@@ -114,10 +114,11 @@ export class ClaudeStateReader {
 
   constructor(readonly root = claudeDirectory()) {}
 
-  read(): ThreadRecord[] {
+  read(updatedAfter = 0): ThreadRecord[] {
     return transcriptFiles(this.root)
       .map((path) => {
         const stat = statSync(path);
+        if (stat.mtimeMs < updatedAfter) return undefined;
         const signature = `${stat.size}:${stat.mtimeMs}`;
         const cached = this.cache.get(path);
         if (cached?.signature === signature) return cached.record;

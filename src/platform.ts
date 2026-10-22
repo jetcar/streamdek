@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { homedir } from 'node:os';
 import { posix, win32 } from 'node:path';
 import type { Log } from './deck.js';
+import type { DeckTarget } from './types.js';
 
 type SupportedPlatform = 'win32' | 'darwin' | 'linux';
 
@@ -60,5 +61,46 @@ export function openExternal(url: string, log: Log): void {
     log(`Opened ${url}`);
   } catch (error) {
     log(`Could not open ${url}`, error);
+  }
+}
+
+export function claudeLauncher(
+  sessionId: string,
+  platform = process.platform,
+): { command: string; args: string[] } {
+  if (!/^[A-Za-z0-9._-]+$/.test(sessionId)) throw new Error('Invalid Claude session ID');
+  const supported = platform as SupportedPlatform;
+  if (supported === 'win32') {
+    return { command: 'cmd.exe', args: ['/d', '/s', '/c', 'start', '""', 'claude', '--resume', sessionId] };
+  }
+  if (supported === 'darwin') {
+    return {
+      command: 'osascript',
+      args: ['-e', `tell application "Terminal" to do script "claude --resume ${sessionId}"`],
+    };
+  }
+  if (supported === 'linux') {
+    return { command: 'x-terminal-emulator', args: ['-e', 'claude', '--resume', sessionId] };
+  }
+  throw new Error(`Unsupported platform: ${platform}`);
+}
+
+export function openDeckTarget(target: DeckTarget, log: Log): void {
+  if (target.kind === 'url') {
+    openExternal(target.value, log);
+    return;
+  }
+  try {
+    const selected = claudeLauncher(target.sessionId);
+    const child = spawn(selected.command, selected.args, {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: false,
+    });
+    child.on('error', (error) => log(`Could not open Claude session ${target.sessionId}`, error));
+    child.unref();
+    log(`Opened Claude session ${target.sessionId}`);
+  } catch (error) {
+    log(`Could not open Claude session ${target.sessionId}`, error);
   }
 }

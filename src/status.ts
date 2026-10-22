@@ -30,13 +30,16 @@ function automationStatus(automation: AutomationRecord): CardStatus {
 }
 
 function threadCard(thread: ThreadRecord): DeckCard {
+  const provider = thread.provider ?? 'codex';
   return {
-    id: `thread:${thread.id}`,
+    id: `${provider}:${thread.id}`,
     title: thread.title || 'Untitled task',
     status: threadStatus(thread),
     timestamp: thread.updatedAt,
-    targetUrl: `codex://threads/${encodeURIComponent(thread.id)}`,
-    source: 'thread',
+    target: provider === 'claude'
+      ? { kind: 'claude-session', sessionId: thread.id }
+      : { kind: 'url', value: `codex://threads/${encodeURIComponent(thread.id)}` },
+    source: provider === 'claude' ? 'claude' : 'thread',
   };
 }
 
@@ -50,7 +53,7 @@ function automationCard(automation: AutomationRecord, now: number): DeckCard {
     title: automation.name || automation.id,
     status: automationStatus(automation),
     timestamp: automation.nextRunAt ?? automation.lastRunAt ?? now,
-    targetUrl,
+    target: { kind: 'url', value: targetUrl },
     source: 'automation',
   };
 }

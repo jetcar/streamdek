@@ -17,7 +17,7 @@ describe('renderCard', () => {
       title: 'Test card',
       status: 'thinking',
       timestamp: Date.now(),
-      targetUrl: 'codex://threads/1',
+      target: { kind: 'url', value: 'codex://threads/1' },
       source: 'thread',
     }, 72);
     expect(buffer).toHaveLength(72 * 72 * 3);

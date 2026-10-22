@@ -52,7 +52,7 @@ export async function renderCard(card: DeckCard, size: number, now = Date.now())
       <text x="5" y="17" fill="${theme.accent}" font-family="Arial, sans-serif" font-size="7" font-weight="700">${theme.label}</text>
       <text x="5" y="34" fill="#ffffff" font-family="Arial, sans-serif" font-size="10" font-weight="700">${escapeXml(lineOne)}</text>
       <text x="5" y="46" fill="#ffffff" font-family="Arial, sans-serif" font-size="10" font-weight="700">${escapeXml(lineTwo)}</text>
-      <text x="5" y="64" fill="#aeb8c4" font-family="Arial, sans-serif" font-size="8">${card.source === 'automation' ? 'AUTO ' : ''}${relativeTime(card.timestamp, now)}</text>
+      <text x="5" y="64" fill="#aeb8c4" font-family="Arial, sans-serif" font-size="8">${card.source === 'automation' ? 'AUTO ' : card.source === 'claude' ? 'CLAUDE ' : ''}${relativeTime(card.timestamp, now)}</text>
     </svg>
   `);
 

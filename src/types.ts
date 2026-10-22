@@ -20,13 +20,17 @@ export interface AutomationRecord {
   latestRunStatus?: string;
 }
 
+export type DeckTarget =
+  | { kind: 'url'; value: string }
+  | { kind: 'claude-session'; sessionId: string };
+
 export interface DeckCard {
   id: string;
   title: string;
   status: CardStatus;
   timestamp: number;
-  targetUrl: string;
-  source: 'thread' | 'automation';
+  target: DeckTarget;
+  source: 'thread' | 'automation' | 'claude';
 }
 
 export interface CodexSnapshot {
