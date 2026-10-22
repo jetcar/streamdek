@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.1 - 2026-10-22
+
+### Changed
+
+- Session cards are ordered by latest activity instead of status, so completion changes color without moving the card behind persistent errors.
+- Active scheduled automations use reserved buttons at the end of the layout.
+
 ## 1.3.0 - 2026-10-22
 
 ### Added
