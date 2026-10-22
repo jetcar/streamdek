@@ -8,7 +8,7 @@ function line(value: unknown): string {
 }
 
 describe('parseClaudeTranscript', () => {
-  it('extracts a title and completed session', () => {
+  it('uses the working folder name for a completed session', () => {
     const record = parseClaudeTranscript([
       line({ type: 'user', sessionId: 'session-1', cwd: '/repo/app', message: { content: 'Fix the login bug' } }),
       line({ type: 'assistant', sessionId: 'session-1', message: { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Done' }] } }),
@@ -16,11 +16,30 @@ describe('parseClaudeTranscript', () => {
 
     expect(record).toMatchObject({
       id: 'session-1',
-      title: 'Fix the login bug',
+      title: 'app',
       updatedAt: UPDATED_AT,
       turnStatus: 'completed',
       provider: 'claude',
     });
+  });
+
+  it('falls back to the saved session name when no folder is recorded', () => {
+    const record = parseClaudeTranscript([
+      line({ type: 'ai-title', sessionId: 'session-4', aiTitle: 'Generated title' }),
+      line({ type: 'custom-title', sessionId: 'session-4', customTitle: 'Release dashboard' }),
+      line({ type: 'user', sessionId: 'session-4', message: { content: 'Build it' } }),
+    ].join('\n'), 'fallback', UPDATED_AT);
+
+    expect(record?.title).toBe('Release dashboard');
+  });
+
+  it('uses the session ID when folder and saved names are missing', () => {
+    const record = parseClaudeTranscript(
+      line({ type: 'user', sessionId: 'session-5', message: { content: 'Build it' } }),
+      'fallback',
+      UPDATED_AT,
+    );
+    expect(record?.title).toBe('session-5');
   });
 
   it('detects a pending Claude question', () => {

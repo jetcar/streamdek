@@ -10,6 +10,9 @@ interface ClaudeMessage {
   cwd?: string;
   error?: unknown;
   isApiErrorMessage?: boolean;
+  customTitle?: string;
+  aiTitle?: string;
+  agentName?: string;
   message?: {
     role?: string;
     stop_reason?: string | null;
@@ -17,25 +20,16 @@ interface ClaudeMessage {
   };
 }
 
-function textContent(message: ClaudeMessage): string | undefined {
-  const content = message.message?.content;
-  if (typeof content === 'string') return content;
-  return content?.find((item) => item.type === 'text' && item.text)?.text;
-}
-
-function cleanTitle(value: string | undefined, cwd: string | undefined): string {
-  const firstLine = value
-    ?.replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (firstLine) return firstLine.slice(0, 80);
-  return cwd ? basename(cwd) : 'Claude Code session';
+function cleanTitle(cwd: string | undefined, sessionName: string | undefined, id: string): string {
+  if (cwd) return basename(cwd);
+  return sessionName?.trim().slice(0, 80) || id;
 }
 
 export function parseClaudeTranscript(content: string, fallbackId: string, updatedAt: number): ThreadRecord | undefined {
   let id = fallbackId;
   let cwd: string | undefined;
-  let title: string | undefined;
+  let sessionName: string | undefined;
+  let sessionNamePriority = 0;
   let turnStatus: string | undefined;
   let hasQuestions = false;
   let sawConversation = false;
@@ -51,12 +45,21 @@ export function parseClaudeTranscript(content: string, fallbackId: string, updat
 
     if (entry.sessionId) id = entry.sessionId;
     if (entry.cwd) cwd = entry.cwd;
+    const named = entry.type === 'custom-title'
+      ? { value: entry.customTitle, priority: 3 }
+      : entry.type === 'ai-title'
+        ? { value: entry.aiTitle, priority: 2 }
+        : entry.type === 'agent-name'
+          ? { value: entry.agentName, priority: 1 }
+          : undefined;
+    if (named?.value && named.priority >= sessionNamePriority) {
+      sessionName = named.value;
+      sessionNamePriority = named.priority;
+    }
     if (entry.type !== 'user' && entry.type !== 'assistant') continue;
     sawConversation = true;
 
     if (entry.type === 'user') {
-      const value = textContent(entry);
-      if (!title && value) title = value;
       turnStatus = 'inProgress';
       hasQuestions = false;
       continue;
@@ -85,7 +88,7 @@ export function parseClaudeTranscript(content: string, fallbackId: string, updat
   if (!sawConversation) return undefined;
   return {
     id,
-    title: cleanTitle(title, cwd),
+    title: cleanTitle(cwd, sessionName, id),
     updatedAt,
     turnStatus,
     hasQuestions,
