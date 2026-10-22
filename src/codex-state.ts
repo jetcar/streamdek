@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { codexDirectory } from './platform.js';
 import type { AutomationRecord, CodexSnapshot, ThreadRecord } from './types.js';
 
 interface Paths {
@@ -14,7 +14,7 @@ interface SqlRow {
 }
 
 function defaultPaths(): Paths {
-  const root = join(homedir(), '.codex');
+  const root = codexDirectory();
   return {
     state: join(root, 'state_5.sqlite'),
     history: join(root, 'thread_history_1.sqlite'),

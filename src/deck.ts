@@ -1,7 +1,7 @@
 import { listStreamDecks, openStreamDeck } from '@elgato-stream-deck/node';
 import type { StreamDeck } from '@elgato-stream-deck/core';
-import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { openExternal } from './platform.js';
 import { renderBlank, renderCard } from './render.js';
 import type { DeckCard } from './types.js';
 
@@ -32,7 +32,7 @@ export class DeckController {
     deck.on('down', (control) => {
       if (control.type !== 'button') return;
       const card = this.cards[control.index];
-      if (card) openCodex(card.targetUrl, this.log);
+      if (card) openExternal(card.targetUrl, this.log);
     });
     deck.on('error', (error) => {
       this.disconnected = true;
@@ -70,15 +70,5 @@ export class DeckController {
     this.deck = undefined;
     this.disconnected = true;
     if (deck) await deck.close().catch(() => undefined);
-  }
-}
-
-function openCodex(url: string, log: Log): void {
-  try {
-    const child = spawn('explorer.exe', [url], { detached: true, stdio: 'ignore', windowsHide: true });
-    child.unref();
-    log(`Opened ${url}`);
-  } catch (error) {
-    log(`Could not open ${url}`, error);
   }
 }

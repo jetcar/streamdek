@@ -2,9 +2,10 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileS
 import { join } from 'node:path';
 import { CodexStateReader } from './codex-state.js';
 import { DeckController } from './deck.js';
+import { runtimeDirectory } from './platform.js';
 import { buildCards } from './status.js';
 
-const runtimeRoot = join(process.env.LOCALAPPDATA ?? process.cwd(), 'streamdek');
+const runtimeRoot = runtimeDirectory();
 const logPath = join(runtimeRoot, 'streamdek.log');
 const pidPath = join(runtimeRoot, 'streamdek.pid');
 const pollMs = Number(process.env.STREAMDEK_POLL_MS ?? 2_000);
