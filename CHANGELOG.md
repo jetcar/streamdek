@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 - 2026-10-22
+
+### Added
+
+- Claude Code session cards from local read-only transcript history.
+- Claude Code status mapping for working, asking, failed, and completed sessions.
+- Cross-platform session reopening with `claude --resume`.
+
 ## 1.1.0 - 2026-10-22
 
 ### Added
