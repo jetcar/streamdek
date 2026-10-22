@@ -16,6 +16,8 @@ Supports Windows, macOS, and Linux without the Elgato desktop application.
 Ordinary tasks disappear after 24 hours without activity. Active automations stay visible.
 Claude Code cards show the working-folder name, falling back to the saved session name, include a `CLAUDE` footer, and reopen in a new terminal with `claude --resume`. Scheduled-task runs are grouped into one card per routine; its status and click target follow the most recent run.
 
+Session cards are ordered by latest activity, independent of status, so finishing a task changes its color without sending it behind older errors. Active scheduled automations occupy reserved buttons at the end, ordered by their next run.
+
 ## Requirements
 
 - Node.js 24 or newer.

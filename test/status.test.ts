@@ -45,18 +45,31 @@ describe('buildCards', () => {
     expect(cards[0].target).toEqual({ kind: 'url', value: 'codex://threads/target-1' });
   });
 
-  it('orders asking before thinking, errors, scheduled, and done', () => {
+  it('orders sessions by latest activity instead of status', () => {
     const snapshot: CodexSnapshot = {
       threads: [
-        thread({ id: 'done', turnStatus: 'completed' }),
-        thread({ id: 'error', turnStatus: 'failed' }),
-        thread({ id: 'thinking', turnStatus: 'inProgress' }),
-        thread({ id: 'asking', turnStatus: 'inProgress', hasQuestions: true }),
+        thread({ id: 'older-error', turnStatus: 'failed', updatedAt: NOW - 60_000 }),
+        thread({ id: 'newest-done', turnStatus: 'completed', updatedAt: NOW }),
+        thread({ id: 'oldest-thinking', turnStatus: 'inProgress', updatedAt: NOW - 120_000 }),
       ],
-      automations: [{ id: 'auto', name: 'Auto', status: 'ACTIVE', nextRunAt: NOW + 1_000 }],
+      automations: [],
     };
-    expect(buildCards(snapshot, { now: NOW }).map((card) => card.status)).toEqual([
-      'asking', 'thinking', 'error', 'scheduled', 'done',
+    expect(buildCards(snapshot, { now: NOW }).map((card) => card.id)).toEqual([
+      'codex:newest-done', 'codex:older-error', 'codex:oldest-thinking',
+    ]);
+  });
+
+  it('reserves the last buttons for active automations', () => {
+    const snapshot: CodexSnapshot = {
+      threads: [
+        thread({ id: 'newest', updatedAt: NOW }),
+        thread({ id: 'middle', updatedAt: NOW - 1_000 }),
+        thread({ id: 'oldest', updatedAt: NOW - 2_000 }),
+      ],
+      automations: [{ id: 'auto', name: 'Auto', status: 'ACTIVE', nextRunAt: NOW + 60_000 }],
+    };
+    expect(buildCards(snapshot, { now: NOW, limit: 3 }).map((card) => card.id)).toEqual([
+      'codex:newest', 'codex:middle', 'automation:auto',
     ]);
   });
 

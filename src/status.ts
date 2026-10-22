@@ -1,14 +1,5 @@
 import type { AutomationRecord, CardStatus, CodexSnapshot, DeckCard, ThreadRecord } from './types.js';
 
-const PRIORITY: Record<CardStatus, number> = {
-  asking: 0,
-  thinking: 1,
-  error: 2,
-  scheduled: 3,
-  done: 4,
-  idle: 5,
-};
-
 export interface CardOptions {
   now?: number;
   staleAfterMs?: number;
@@ -81,15 +72,16 @@ export function buildCards(snapshot: CodexSnapshot, options: CardOptions = {}): 
 
   const threads = latestRoutineRuns(snapshot.threads)
     .filter((thread) => now - thread.updatedAt <= staleAfterMs)
-    .map(threadCard);
+    .map(threadCard)
+    .sort((a, b) => b.timestamp - a.timestamp);
 
   const automations = snapshot.automations
     .filter((automation) => automation.status.toUpperCase() === 'ACTIVE')
-    .map((automation) => automationCard(automation, now));
-
-  return [...threads, ...automations]
-    .sort((a, b) => PRIORITY[a.status] - PRIORITY[b.status] || b.timestamp - a.timestamp)
+    .map((automation) => automationCard(automation, now))
+    .sort((a, b) => a.timestamp - b.timestamp)
     .slice(0, limit);
+
+  return [...threads.slice(0, Math.max(0, limit - automations.length)), ...automations];
 }
 
 export function relativeTime(timestamp: number, now = Date.now()): string {
