@@ -134,7 +134,8 @@ jobs:
             packaging/linux/control > "$root/DEBIAN/control"
           dpkg-deb --root-owner-group --build "$root" "release/streamdek-$version-linux-$ARCH.deb"
           dpkg-deb --info "release/streamdek-$version-linux-$ARCH.deb"
-          dpkg-deb --contents "release/streamdek-$version-linux-$ARCH.deb" | grep -q './opt/streamdek/dist/app.js'
+          dpkg-deb --contents "release/streamdek-$version-linux-$ARCH.deb" > release/deb-contents.txt
+          grep -q './opt/streamdek/dist/app.js' release/deb-contents.txt
 
       - uses: actions/upload-artifact@v7
         with:
