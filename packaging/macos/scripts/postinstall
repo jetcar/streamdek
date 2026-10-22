@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+
+label="com.jetcar.streamdek"
+plist="/Library/LaunchAgents/$label.plist"
+console_uid=$(stat -f '%u' /dev/console)
+
+chmod 0755 "/Library/Application Support/Streamdek/node"
+chown root:wheel "$plist"
+chmod 0644 "$plist"
+
+if [ "$console_uid" -ge 500 ] 2>/dev/null; then
+  launchctl bootstrap "gui/$console_uid" "$plist" 2>/dev/null || true
+  launchctl kickstart -k "gui/$console_uid/$label" 2>/dev/null || true
+fi
+
+exit 0

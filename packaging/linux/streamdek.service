@@ -1,0 +1,13 @@
+[Unit]
+Description=Streamdek agent status display
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/opt/streamdek/node /opt/streamdek/dist/app.js
+WorkingDirectory=/opt/streamdek
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

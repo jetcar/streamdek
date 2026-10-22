@@ -1,0 +1,10 @@
+Package: streamdek
+Version: @VERSION@
+Architecture: @ARCH@
+Maintainer: jetcar <noreply@github.com>
+Installed-Size: @INSTALLED_SIZE@
+Section: utils
+Priority: optional
+Description: Stream Deck status display for Codex and Claude Code
+ Shows live agent session and scheduled automation status on an Elgato
+ Stream Deck and opens the corresponding session when a button is pressed.

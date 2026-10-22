@@ -20,11 +20,9 @@ Session cards are ordered by latest activity, independent of status, so finishin
 
 ## Requirements
 
-- Node.js 24 or newer.
 - A connected Elgato Stream Deck.
 - ChatGPT desktop with Codex, Claude Code, or both.
 - Claude Code must be available as `claude` on `PATH` to reopen Claude sessions.
-- The repository must remain at its installed path. Rerun the installer after moving it.
 
 The Linux ChatGPT app is currently a preview supported on Ubuntu 24.04/26.04, Debian 13, Fedora 43/44, and current Arch Linux. Other systemd desktops may run Streamdek, but are not formally supported by OpenAI.
 
@@ -32,25 +30,27 @@ Quit the Elgato Stream Deck application if it is installed because only one appl
 
 ## Install
 
-Download and extract the archive for your operating system from the [latest release](https://github.com/jetcar/streamdek/releases/latest), then run its installer:
+Download the native installer for your operating system from the [latest release](https://github.com/jetcar/streamdek/releases/latest). Node.js and production dependencies are included.
 
-| Platform | Install and start at login |
+| Platform | Installer |
 |---|---|
-| Windows | `powershell -ExecutionPolicy Bypass -File scripts\install.ps1` |
-| macOS | `./scripts/install-macos.sh` |
-| Linux | `./scripts/install-linux.sh` |
+| Windows | Run `streamdek-*-windows-x64-setup.exe` |
+| macOS Apple silicon | Open `streamdek-*-macos-arm64.pkg` |
+| macOS Intel | Open `streamdek-*-macos-x64.pkg` |
+| Debian/Ubuntu x64 | Install `streamdek-*-linux-x64.deb` |
+| Debian/Ubuntu ARM64 | Install `streamdek-*-linux-arm64.deb` |
 
-The Linux installer adds the upstream desktop-user udev permissions and may ask for `sudo`. Unplug and reconnect the Stream Deck once after the first installation.
+The installers are currently unsigned, so the operating system may ask you to confirm the download. The Linux package adds the upstream desktop-user udev permissions. Unplug and reconnect the Stream Deck once after the first installation.
 
-To install from source instead, clone the repository and run the same platform command. Source installation also builds the TypeScript code locally.
+To install from source instead, clone the repository and run `scripts/install.ps1`, `scripts/install-macos.sh`, or `scripts/install-linux.sh`. Source installation requires Node.js 24 or newer.
 
 ## Uninstall
 
 | Platform | Stop and remove startup |
 |---|---|
-| Windows | `powershell -ExecutionPolicy Bypass -File scripts\uninstall.ps1` |
-| macOS | `./scripts/uninstall-macos.sh` |
-| Linux | `./scripts/uninstall-linux.sh` |
+| Windows | Windows Settings → Apps → Streamdek |
+| macOS | `sudo "/Library/Application Support/Streamdek/uninstall.sh"` |
+| Linux | `sudo apt remove streamdek` |
 
 ## Logs
 

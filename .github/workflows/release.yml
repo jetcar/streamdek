@@ -4,9 +4,18 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to use for packaging validation
+        required: true
+        default: 1.4.0
 
 permissions:
   contents: read
+
+env:
+  RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
 
 jobs:
   package:
@@ -16,10 +25,19 @@ jobs:
         include:
           - os: windows-latest
             platform: windows
-          - os: macos-latest
+            arch: x64
+          - os: macos-15-intel
             platform: macos
-          - os: ubuntu-latest
+            arch: x64
+          - os: macos-15
+            platform: macos
+            arch: arm64
+          - os: ubuntu-24.04
             platform: linux
+            arch: x64
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -31,49 +49,104 @@ jobs:
       - run: npm test
       - run: npm run typecheck
       - run: npm run build
+      - run: npm prune --omit=dev
 
-      - name: Package Windows
+      - name: Stage Windows payload
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $version = '${{ github.ref_name }}'.TrimStart('v')
-          $name = "streamdek-$version-windows"
-          New-Item -ItemType Directory -Path "release/$name/scripts" -Force | Out-Null
-          Copy-Item -Recurse dist "release/$name/dist"
-          Copy-Item README.md, CHANGELOG.md, package.json, package-lock.json "release/$name/"
-          Copy-Item scripts/install.ps1, scripts/uninstall.ps1 "release/$name/scripts/"
-          Compress-Archive -Path "release/$name" -DestinationPath "release/$name.zip"
+          New-Item -ItemType Directory -Path release/payload/scripts -Force | Out-Null
+          Copy-Item -Recurse dist, node_modules release/payload/
+          Copy-Item README.md, CHANGELOG.md, package.json release/payload/
+          Copy-Item scripts/uninstall.ps1 release/payload/scripts/
+          Copy-Item (Get-Command node).Source release/payload/node.exe
 
-      - name: Package Unix
+      - name: Build Windows installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = '${{ env.RELEASE_VERSION }}'.TrimStart('v')
+          $iscc = (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) {
+            $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          }
+          if (-not (Test-Path -LiteralPath $iscc)) {
+            throw 'Inno Setup compiler was not found on the runner.'
+          }
+          & $iscc "/DAppVersion=$version" "/DPayloadDir=$((Resolve-Path release/payload).Path)" "/DOutputDir=$((Resolve-Path release).Path)" "/DOutputBaseFilename=streamdek-$version-windows-x64-setup" packaging/windows/streamdek.iss
+
+      - name: Stage Unix payload
         if: runner.os != 'Windows'
         shell: bash
-        env:
-          PLATFORM: ${{ matrix.platform }}
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME#v}"
-          name="streamdek-$version-$PLATFORM"
-          mkdir -p "release/$name/scripts"
-          cp -R dist "release/$name/dist"
-          cp README.md CHANGELOG.md package.json package-lock.json "release/$name/"
-          if [ "$PLATFORM" = "macos" ]; then
-            cp scripts/install-macos.sh scripts/uninstall-macos.sh "release/$name/scripts/"
-            chmod +x "release/$name/scripts/"*.sh
-          else
-            cp scripts/install-linux.sh scripts/uninstall-linux.sh scripts/50-elgato-stream-deck-user.rules "release/$name/scripts/"
-            chmod +x "release/$name/scripts/"*.sh
-          fi
-          tar -czf "release/$name.tar.gz" -C release "$name"
+          mkdir -p release/payload
+          cp -R dist node_modules release/payload/
+          cp README.md CHANGELOG.md package.json release/payload/
+          cp -L "$(command -v node)" release/payload/node
+          chmod 0755 release/payload/node
+
+      - name: Build macOS installer
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          version="${RELEASE_VERSION#v}"
+          root="release/pkg-root"
+          app_dir="$root/Library/Application Support/Streamdek"
+          mkdir -p "$app_dir" "$root/Library/LaunchAgents"
+          cp -R release/payload/. "$app_dir/"
+          cp packaging/macos/uninstall.sh "$app_dir/"
+          chmod 0755 "$app_dir/uninstall.sh"
+          cp packaging/macos/com.jetcar.streamdek.plist "$root/Library/LaunchAgents/"
+          pkgbuild \
+            --root "$root" \
+            --scripts packaging/macos/scripts \
+            --identifier com.jetcar.streamdek \
+            --version "$version" \
+            --install-location / \
+            "release/streamdek-$version-macos-$ARCH.pkg"
+          pkgutil --check-signature "release/streamdek-$version-macos-$ARCH.pkg" || true
+          pkgutil --payload-files "release/streamdek-$version-macos-$ARCH.pkg" | grep -q 'Library/Application Support/Streamdek/dist/app.js'
+
+      - name: Build Linux installer
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          version="${RELEASE_VERSION#v}"
+          root="release/deb-root"
+          mkdir -p "$root/DEBIAN" "$root/opt/streamdek" "$root/usr/lib/systemd/user" "$root/usr/lib/udev/rules.d"
+          cp -R release/payload/. "$root/opt/streamdek/"
+          cp packaging/linux/streamdek.service "$root/usr/lib/systemd/user/"
+          cp scripts/50-elgato-stream-deck-user.rules "$root/usr/lib/udev/rules.d/"
+          cp packaging/linux/postinst packaging/linux/prerm packaging/linux/postrm "$root/DEBIAN/"
+          chmod 0755 "$root/DEBIAN/postinst" "$root/DEBIAN/prerm" "$root/DEBIAN/postrm"
+          installed_size=$(du -sk "$root" | cut -f1)
+          sed \
+            -e "s/@VERSION@/$version/g" \
+            -e "s/@ARCH@/$(dpkg --print-architecture)/g" \
+            -e "s/@INSTALLED_SIZE@/$installed_size/g" \
+            packaging/linux/control > "$root/DEBIAN/control"
+          dpkg-deb --root-owner-group --build "$root" "release/streamdek-$version-linux-$ARCH.deb"
+          dpkg-deb --info "release/streamdek-$version-linux-$ARCH.deb"
+          dpkg-deb --contents "release/streamdek-$version-linux-$ARCH.deb" | grep -q './opt/streamdek/dist/app.js'
 
       - uses: actions/upload-artifact@v7
         with:
-          name: release-${{ matrix.platform }}
+          name: release-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
-            release/*.zip
-            release/*.tar.gz
+            release/*.exe
+            release/*.pkg
+            release/*.deb
           if-no-files-found: error
 
   publish:
+    if: github.event_name == 'push'
     needs: package
     runs-on: ubuntu-latest
     permissions:
@@ -97,4 +170,4 @@ jobs:
             --verify-tag \
             --generate-notes \
             --title "Streamdek $GITHUB_REF_NAME" \
-            --notes "Requires Node.js 24 or newer. Download the archive for your operating system, extract it, and run the included installer."
+            --notes "Native installers include Node.js and production dependencies. Download and run the installer for your operating system and processor. Packages are currently unsigned."

@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+
+systemctl --global enable streamdek.service >/dev/null 2>&1 || true
+udevadm control --reload-rules >/dev/null 2>&1 || true
+
+for runtime_dir in /run/user/[0-9]*; do
+  [ -d "$runtime_dir" ] || continue
+  uid=${runtime_dir##*/}
+  user=$(getent passwd "$uid" | cut -d: -f1)
+  [ -n "$user" ] || continue
+  runuser -u "$user" -- env XDG_RUNTIME_DIR="$runtime_dir" systemctl --user daemon-reload >/dev/null 2>&1 || true
+  runuser -u "$user" -- env XDG_RUNTIME_DIR="$runtime_dir" systemctl --user enable --now streamdek.service >/dev/null 2>&1 || true
+  runuser -u "$user" -- env XDG_RUNTIME_DIR="$runtime_dir" systemctl --user restart streamdek.service >/dev/null 2>&1 || true
+done
+
+exit 0

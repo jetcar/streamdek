@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = remove ]; then
+  systemctl --global disable streamdek.service >/dev/null 2>&1 || true
+  for runtime_dir in /run/user/[0-9]*; do
+    [ -d "$runtime_dir" ] || continue
+    uid=${runtime_dir##*/}
+    user=$(getent passwd "$uid" | cut -d: -f1)
+    [ -n "$user" ] || continue
+    runuser -u "$user" -- env XDG_RUNTIME_DIR="$runtime_dir" systemctl --user disable --now streamdek.service >/dev/null 2>&1 || true
+  done
+fi
+
+exit 0

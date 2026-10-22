@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0 - 2026-10-22
+
+### Added
+
+- Native Windows `.exe`, macOS `.pkg`, and Linux `.deb` installers.
+- Self-contained Node.js runtime and production dependencies in every installer.
+- Intel and Apple silicon macOS packages plus x64 and ARM64 Linux packages.
+
+### Changed
+
+- Releases no longer publish ZIP or tarball archives.
+
 ## 1.3.1 - 2026-10-22
 
 ### Changed

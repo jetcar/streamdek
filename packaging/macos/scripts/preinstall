@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+
+label="com.jetcar.streamdek"
+console_uid=$(stat -f '%u' /dev/console)
+
+if [ "$console_uid" -ge 500 ] 2>/dev/null; then
+  launchctl bootout "gui/$console_uid/$label" 2>/dev/null || true
+fi
