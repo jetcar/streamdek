@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.1 - 2026-10-23
+
+### Fixed
+
+- The Gradle wrapper is executable on Linux GitHub runners so signed Android APK releases build successfully.
+
 ## 1.6.0 - 2026-10-23
 
 ### Added
