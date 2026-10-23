@@ -7,3 +7,6 @@ graphify-out/
 *.pid
 .DS_Store
 Thumbs.db
+android/.gradle/
+android/**/build/
+android/local.properties
