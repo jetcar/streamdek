@@ -34,14 +34,11 @@ CloseApplications=no
 [Files]
 Source: "{#PayloadDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; BeforeInstall: StopStreamdek
 
-[Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "StreamdekCodexStatus"; ValueData: """{app}\node.exe"" ""{app}\dist\app.js"""; Flags: uninsdeletevalue
-
 [Icons]
 Name: "{group}\Uninstall Streamdek"; Filename: "{uninstallexe}"
 
 [Run]
-Filename: "{app}\node.exe"; Parameters: """{app}\dist\app.js"""; WorkingDir: "{app}"; Flags: nowait runhidden; StatusMsg: "Starting Streamdek..."
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\scripts\register-windows-task.ps1"" -NodePath ""{app}\node.exe"" -AppPath ""{app}\dist\app.js"" -WorkingDirectory ""{app}"""; Flags: runhidden waituntilterminated; StatusMsg: "Starting Streamdek..."
 
 [UninstallRun]
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\scripts\uninstall.ps1"""; Flags: runhidden; RunOnceId: "StopStreamdek"
@@ -61,6 +58,7 @@ begin
     exit;
 
   StreamdekStopped := True;
+  Exec(ExpandConstant('{sys}\schtasks.exe'), '/End /TN Streamdek', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   PidPath := ExpandConstant('{localappdata}\streamdek\streamdek.pid');
   if LoadStringFromFile(PidPath, PidText) then
   begin

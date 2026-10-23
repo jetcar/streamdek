@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.2 - 2026-10-23
+
+### Fixed
+
+- Windows installations now run under a watchdog that automatically relaunches Streamdek after an unexpected process exit.
+
 ## 1.6.1 - 2026-10-23
 
 ### Fixed

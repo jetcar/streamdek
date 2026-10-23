@@ -3,8 +3,6 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $nodePath = (Get-Command node).Source
 $appPath = Join-Path $projectRoot 'dist\app.js'
-$runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
-$runValue = '"{0}" "{1}"' -f $nodePath, $appPath
 
 Push-Location $projectRoot
 try {
@@ -20,6 +18,8 @@ try {
     Pop-Location
 }
 
-New-ItemProperty -Path $runKey -Name 'StreamdekCodexStatus' -Value $runValue -PropertyType String -Force | Out-Null
-Start-Process -FilePath $nodePath -ArgumentList @($appPath) -WorkingDirectory $projectRoot -WindowStyle Hidden
+& (Join-Path $PSScriptRoot 'register-windows-task.ps1') `
+    -NodePath $nodePath `
+    -AppPath $appPath `
+    -WorkingDirectory $projectRoot
 Write-Output 'Streamdek is installed and running.'

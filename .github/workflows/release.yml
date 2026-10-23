@@ -58,7 +58,7 @@ jobs:
           New-Item -ItemType Directory -Path release/payload/scripts -Force | Out-Null
           Copy-Item -Recurse dist, node_modules release/payload/
           Copy-Item README.md, CHANGELOG.md, package.json release/payload/
-          Copy-Item scripts/uninstall.ps1 release/payload/scripts/
+          Copy-Item scripts/uninstall.ps1, scripts/register-windows-task.ps1, scripts/watch-windows.ps1 release/payload/scripts/
           Copy-Item (Get-Command node).Source release/payload/node.exe
 
       - name: Build Windows installer

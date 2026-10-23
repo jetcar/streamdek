@@ -58,6 +58,8 @@ Download the native installer for your operating system from the [latest release
 
 The desktop installers are currently unsigned, so the operating system may ask you to confirm the download. The Android APK is signed. The Linux package adds the upstream desktop-user udev permissions. Unplug and reconnect the Stream Deck once after the first installation.
 
+Desktop installations start automatically after login and relaunch Streamdek after an unexpected process exit.
+
 To install from source instead, clone the repository and run `scripts/install.ps1`, `scripts/install-macos.sh`, or `scripts/install-linux.sh`. Source installation requires Node.js 24 or newer.
 
 ## Uninstall
