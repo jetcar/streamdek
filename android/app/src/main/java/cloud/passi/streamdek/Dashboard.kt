@@ -65,7 +65,7 @@ fun StreamdekApp(viewModel: StreamdekViewModel) {
         ) {
             Header(state.connection, state.paired, viewModel::disconnect)
             if (!state.paired) {
-                PairingPanel(state, viewModel::updateAddress, viewModel::updateCode, viewModel::pair)
+                PairingPanel(state, viewModel::updateAddress, viewModel::updateCode, viewModel::selectServer, viewModel::pair)
             } else if (state.cards.isEmpty()) {
                 EmptyState(state.connection)
             } else {
@@ -102,9 +102,27 @@ private fun Header(connection: ConnectionState, paired: Boolean, disconnect: () 
 }
 
 @Composable
-private fun PairingPanel(state: UiState, address: (String) -> Unit, code: (String) -> Unit, pair: () -> Unit) {
+private fun PairingPanel(
+    state: UiState,
+    address: (String) -> Unit,
+    code: (String) -> Unit,
+    select: (DiscoveredServer) -> Unit,
+    pair: () -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Connect to the desktop service on the same Wi‑Fi network.", color = Muted)
+        state.discovered.forEach { server ->
+            Text(
+                "${server.name}  ${server.address}",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF1E2228), RoundedCornerShape(8.dp))
+                    .clickable { select(server) }
+                    .padding(12.dp),
+                color = Color(0xFF48A8FF),
+                fontSize = 13.sp,
+            )
+        }
         OutlinedTextField(
             value = state.address,
             onValueChange = address,

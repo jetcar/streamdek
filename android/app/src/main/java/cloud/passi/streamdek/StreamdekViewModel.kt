@@ -16,11 +16,17 @@ data class UiState(
     val pairing: Boolean = false,
     val message: String? = null,
     val paired: Boolean = false,
+    val discovered: List<DiscoveredServer> = emptyList(),
 )
 
 class StreamdekViewModel(application: Application) : AndroidViewModel(application) {
     private val preferences = application.getSharedPreferences("connection", 0)
     private val client = StreamdekClient()
+    private val discovery = NsdDiscovery(application) { server ->
+        onMain {
+            state = state.copy(discovered = (state.discovered + server).distinctBy(DiscoveredServer::address))
+        }
+    }
     private val main = Handler(Looper.getMainLooper())
     private var token: String? = preferences.getString("token", null)
     private var reconnect = true
@@ -56,6 +62,13 @@ class StreamdekViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun updateCode(value: String) {
         state = state.copy(code = value.filter(Char::isDigit).take(6), message = null)
+    }
+
+    fun startDiscovery() = runCatching { discovery.start() }
+        .onFailure { state = state.copy(message = "LAN discovery unavailable: ${it.message}") }
+
+    fun selectServer(server: DiscoveredServer) {
+        state = state.copy(address = server.address, message = null)
     }
 
     fun pair() {
@@ -108,6 +121,7 @@ class StreamdekViewModel(application: Application) : AndroidViewModel(applicatio
     override fun onCleared() {
         reconnect = false
         main.removeCallbacksAndMessages(null)
+        discovery.close()
         client.close()
     }
 }

@@ -13,12 +13,14 @@ class MainActivity : ComponentActivity() {
     private val viewModel: StreamdekViewModel by viewModels()
     private val localNetworkPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { }
+    ) { granted -> if (granted) viewModel.startDiscovery() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= 37 && checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) != PackageManager.PERMISSION_GRANTED) {
             localNetworkPermission.launch(Manifest.permission.ACCESS_LOCAL_NETWORK)
+        } else {
+            viewModel.startDiscovery()
         }
         setContent { StreamdekApp(viewModel) }
     }
