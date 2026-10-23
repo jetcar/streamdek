@@ -62,6 +62,19 @@ describe('WifiServer', () => {
     expect(await response.json()).toEqual({ token: 'test-token', protocolVersion: 1 });
   });
 
+  it('rate limits invalid pairing attempts', async () => {
+    const server = await fixture();
+    let status = 0;
+    for (let attempt = 0; attempt < 11; attempt += 1) {
+      status = (await fetch(`http://127.0.0.1:${server.port}/v1/pair`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: '000000' }),
+      })).status;
+    }
+    expect(status).toBe(429);
+  });
+
   it('streams public card data and opens a card on the desktop', async () => {
     let opened: DeckCard | undefined;
     const server = await fixture((value) => { opened = value; });

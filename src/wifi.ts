@@ -88,6 +88,7 @@ export class WifiServer {
   private service?: Service;
   private cards: DeckCard[] = [];
   private digest = '';
+  private readonly pairingAttempts = new Map<string, { startedAt: number; count: number }>();
 
   constructor(private readonly options: WifiServerOptions) {
     this.host = options.host ?? '0.0.0.0';
@@ -178,12 +179,17 @@ export class WifiServer {
       return;
     }
     if (request.method === 'POST' && url.pathname === '/v1/pair') {
+      if (!this.allowPairing(request)) {
+        json(response, 429, { error: 'Too many pairing attempts' });
+        return;
+      }
       try {
         const body = await readBody(request) as { code?: unknown };
         if (typeof body.code !== 'string' || !sameSecret(body.code, this.code)) {
           json(response, 401, { error: 'Invalid pairing code' });
           return;
         }
+        this.pairingAttempts.delete(request.socket.remoteAddress ?? 'unknown');
         json(response, 200, { token: this.token, protocolVersion: WIFI_PROTOCOL_VERSION });
       } catch {
         json(response, 400, { error: 'Invalid JSON body' });
@@ -191,6 +197,17 @@ export class WifiServer {
       return;
     }
     json(response, 404, { error: 'Not found' });
+  }
+
+  private allowPairing(request: IncomingMessage): boolean {
+    const key = request.socket.remoteAddress ?? 'unknown';
+    const now = Date.now();
+    const previous = this.pairingAttempts.get(key);
+    const attempt = !previous || now - previous.startedAt >= 60_000
+      ? { startedAt: now, count: 1 }
+      : { startedAt: previous.startedAt, count: previous.count + 1 };
+    this.pairingAttempts.set(key, attempt);
+    return attempt.count <= 10;
   }
 
   private sendSnapshot(client: WebSocket): void {
