@@ -1,8 +1,8 @@
 # Streamdek Agent Status
 
-Show live Codex and Claude Code sessions plus active Codex scheduled automations on an Elgato Stream Deck. Press a card to reopen its task.
+Show live Codex and Claude Code sessions plus active Codex scheduled automations on an Elgato Stream Deck or Android phone. Press a card to reopen its task on the desktop.
 
-Supports Windows, macOS, and Linux without the Elgato desktop application.
+Supports Windows, macOS, and Linux without the Elgato desktop application. The Android display connects directly over local Wi-Fi.
 
 ![Streamdek showing live AI coding-agent statuses on a Stream Deck](docs/images/streamdek-dashboard.png)
 
@@ -23,13 +23,25 @@ Session cards are ordered by latest activity, independent of status, so finishin
 
 ## Requirements
 
-- A connected Elgato Stream Deck.
 - ChatGPT desktop with Codex, Claude Code, or both.
+- A connected Elgato Stream Deck, an Android 8+ phone on the same Wi-Fi network, or both.
 - Claude Code must be available as `claude` on `PATH` to reopen Claude sessions.
 
 The Linux ChatGPT app is currently a preview supported on Ubuntu 24.04/26.04, Debian 13, Fedora 43/44, and current Arch Linux. Other systemd desktops may run Streamdek, but are not formally supported by OpenAI.
 
 Quit the Elgato Stream Deck application if it is installed because only one application can control the device directly.
+
+## Android Wi-Fi display
+
+Install `streamdek-*-android.apk` from the latest release. Keep the desktop and phone on the same trusted private Wi-Fi network.
+
+1. Start Streamdek on the desktop and open its log to find the six-digit pairing code.
+2. Open the Android app and allow local-network access when requested.
+3. Select the discovered desktop, enter the code, and press **Pair**. If discovery is unavailable, enter the desktop IP and port, such as `192.168.1.20:8910`.
+
+The app reconnects automatically and stores only the server address and random pairing token. Tapping a card asks the desktop to open that Codex or Claude session. Windows may show a firewall prompt the first time; allow access on private networks.
+
+Wi-Fi transport is authenticated but not encrypted. Do not expose port `8910` to the internet or use it on an untrusted network.
 
 ## Install
 
@@ -42,8 +54,9 @@ Download the native installer for your operating system from the [latest release
 | macOS Intel | Open `streamdek-*-macos-x64.pkg` |
 | Debian/Ubuntu x64 | Install `streamdek-*-linux-x64.deb` |
 | Debian/Ubuntu ARM64 | Install `streamdek-*-linux-arm64.deb` |
+| Android 8+ | Install `streamdek-*-android.apk` |
 
-The installers are currently unsigned, so the operating system may ask you to confirm the download. The Linux package adds the upstream desktop-user udev permissions. Unplug and reconnect the Stream Deck once after the first installation.
+The desktop installers are currently unsigned, so the operating system may ask you to confirm the download. The Android APK is signed. The Linux package adds the upstream desktop-user udev permissions. Unplug and reconnect the Stream Deck once after the first installation.
 
 To install from source instead, clone the repository and run `scripts/install.ps1`, `scripts/install-macos.sh`, or `scripts/install-linux.sh`. Source installation requires Node.js 24 or newer.
 
@@ -67,6 +80,7 @@ Optional environment variables:
 
 - `STREAMDEK_STALE_HOURS` — task expiry, default `24`.
 - `STREAMDEK_POLL_MS` — refresh interval, default `2000`.
+- `STREAMDEK_WIFI_PORT` — Android display server port, default `8910`.
 - `STREAMDEK_STATE_DIR` — absolute directory for logs and the process file.
 - `CODEX_HOME` — Codex state directory, default `~/.codex`.
 - `CLAUDE_CONFIG_DIR` — Claude Code state directory, default `~/.claude`.
@@ -75,7 +89,7 @@ The service reads Codex databases and Claude Code transcripts in read-only mode 
 
 ## Development
 
-Run `npm test`, `npm run typecheck`, and `npm run build`.
+Run `npm test`, `npm run typecheck`, and `npm run build` for the desktop service. Run `cd android` and `./gradlew testDebugUnitTest assembleDebug` for Android.
 
 ## References
 

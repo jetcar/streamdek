@@ -10,3 +10,4 @@ Thumbs.db
 android/.gradle/
 android/**/build/
 android/local.properties
+android/release.jks

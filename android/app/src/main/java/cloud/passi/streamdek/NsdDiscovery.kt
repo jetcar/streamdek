@@ -4,8 +4,11 @@ import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import java.io.Closeable
 import java.net.InetAddress
+import java.util.concurrent.Executor
 
 data class DiscoveredServer(val name: String, val address: String)
 
@@ -14,7 +17,7 @@ class NsdDiscovery(
     private val found: (DiscoveredServer) -> Unit,
 ) : Closeable {
     private val manager = context.getSystemService(NsdManager::class.java)
-    private val executor = context.mainExecutor
+    private val executor = Executor { command -> Handler(Looper.getMainLooper()).post(command) }
     private var running = false
 
     private val listener = object : NsdManager.DiscoveryListener {

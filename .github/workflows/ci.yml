@@ -24,3 +24,15 @@ jobs:
       - name: Check Unix installers
         if: runner.os != 'Windows'
         run: bash -n scripts/*.sh
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - working-directory: android
+        run: ./gradlew testDebugUnitTest assembleDebug --no-daemon

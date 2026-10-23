@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Android 8+ companion display with the same live status colors, titles, response excerpts, and tap-to-open behavior.
+- Authenticated local Wi-Fi streaming, six-digit pairing, automatic reconnection, and DNS-SD desktop discovery.
+- Signed, installable Android APKs in tagged GitHub releases.
+
+### Changed
+
+- The desktop service now continues collecting and publishing cards when no physical Stream Deck is connected.
+
 ## 1.5.0 - 2026-10-22
 
 ### Added
