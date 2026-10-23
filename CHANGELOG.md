@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.1 - 2026-10-23
+
+### Fixed
+
+- Rendering tests allow enough time for Sharp to initialize on slower Windows release runners.
+
 ## 1.7.0 - 2026-10-23
 
 ### Added
