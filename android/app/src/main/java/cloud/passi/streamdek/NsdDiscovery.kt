@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import java.io.Closeable
 import java.net.InetAddress
+import java.net.Inet6Address
 import java.util.concurrent.Executor
 
 data class DiscoveredServer(val name: String, val address: String)
@@ -43,7 +44,7 @@ class NsdDiscovery(
                 override fun onServiceInfoCallbackUnregistered() = Unit
                 override fun onServiceLost() = Unit
                 override fun onServiceUpdated(serviceInfo: NsdServiceInfo) {
-                    serviceInfo.hostAddresses.firstOrNull()?.let { report(serviceInfo, it) }
+                    serviceInfo.hostAddresses.minByOrNull { it is Inet6Address }?.let { report(serviceInfo, it) }
                     runCatching { manager.unregisterServiceInfoCallback(this) }
                 }
             }
@@ -59,7 +60,7 @@ class NsdDiscovery(
     }
 
     private fun report(service: NsdServiceInfo, host: InetAddress) {
-        val value = host.hostAddress ?: return
+        val value = host.hostAddress?.replace("%", "%25") ?: return
         val address = if (':' in value) "[$value]:${service.port}" else "$value:${service.port}"
         found(DiscoveredServer(service.serviceName, address))
     }
