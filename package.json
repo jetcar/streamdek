@@ -15,10 +15,12 @@
   },
   "dependencies": {
     "@elgato-stream-deck/node": "^7.8.0",
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",
+    "@types/ws": "^8.18.2",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^4.0.4"
