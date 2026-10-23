@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { hostname } from 'node:os';
 import { dirname } from 'node:path';
+import { Bonjour, type Service } from 'bonjour-service';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { Log } from './deck.js';
 import type { DeckCard } from './types.js';
@@ -26,6 +27,7 @@ interface WifiServerOptions {
   port?: number;
   pairingCode?: string;
   token?: string;
+  advertise?: boolean;
 }
 
 function json(response: ServerResponse, status: number, value: unknown): void {
@@ -82,6 +84,8 @@ export class WifiServer {
   private readonly code: string;
   private readonly webSockets = new WebSocketServer({ noServer: true });
   private readonly http: Server;
+  private bonjour?: Bonjour;
+  private service?: Service;
   private cards: DeckCard[] = [];
   private digest = '';
 
@@ -125,6 +129,15 @@ export class WifiServer {
         resolve();
       });
     });
+    if (this.options.advertise !== false) {
+      this.bonjour = new Bonjour(undefined, (error: unknown) => this.options.log('Wi-Fi discovery error', error));
+      this.service = this.bonjour.publish({
+        name: `Streamdek on ${hostname()}`,
+        type: 'streamdek',
+        port: this.port,
+        txt: { protocol: String(WIFI_PROTOCOL_VERSION) },
+      });
+    }
     this.options.log(`Wi-Fi display listening on port ${this.port}; pairing code ${this.code}`);
   }
 
@@ -137,6 +150,10 @@ export class WifiServer {
   }
 
   async close(): Promise<void> {
+    if (this.service) await new Promise<void>((resolve) => this.service?.stop(() => resolve()));
+    this.bonjour?.destroy();
+    this.service = undefined;
+    this.bonjour = undefined;
     for (const client of this.webSockets.clients) client.close(1001, 'Server stopping');
     this.webSockets.close();
     if (!this.http.listening) return;

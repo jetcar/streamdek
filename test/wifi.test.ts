@@ -33,6 +33,7 @@ async function fixture(onOpen: (value: DeckCard) => void = () => undefined): Pro
     pairingCode: '123456',
     host: '127.0.0.1',
     port: 0,
+    advertise: false,
     log: () => undefined,
     openCard: onOpen,
   });
