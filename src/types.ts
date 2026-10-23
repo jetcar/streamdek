@@ -1,4 +1,4 @@
-export type CardStatus = 'asking' | 'thinking' | 'error' | 'scheduled' | 'done' | 'idle';
+export type CardStatus = 'asking' | 'thinking' | 'error' | 'scheduled' | 'update' | 'done' | 'idle';
 
 export interface ThreadRecord {
   id: string;
@@ -33,7 +33,7 @@ export interface DeckCard {
   status: CardStatus;
   timestamp: number;
   target: DeckTarget;
-  source: 'thread' | 'automation' | 'claude';
+  source: 'thread' | 'automation' | 'claude' | 'update';
 }
 
 export interface CodexSnapshot {

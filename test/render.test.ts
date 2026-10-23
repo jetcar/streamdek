@@ -36,4 +36,17 @@ describe('renderCard', () => {
     }, 72);
     expect(buffer).toHaveLength(72 * 72 * 3);
   }, 20_000);
+
+  it('renders update cards', async () => {
+    const buffer = await renderCard({
+      id: 'update:1.7.0',
+      title: 'Update 1.7.0',
+      subtitle: 'Open installer',
+      status: 'update',
+      timestamp: Date.now(),
+      target: { kind: 'url', value: 'https://github.com/jetcar/streamdek/releases/tag/v1.7.0' },
+      source: 'update',
+    }, 72);
+    expect(buffer).toHaveLength(72 * 72 * 3);
+  }, 20_000);
 });

@@ -73,6 +73,28 @@ describe('buildCards', () => {
     ]);
   });
 
+  it('reserves a button for an available update without displacing automations', () => {
+    const snapshot: CodexSnapshot = {
+      threads: [
+        thread({ id: 'newest', updatedAt: NOW }),
+        thread({ id: 'older', updatedAt: NOW - 1_000 }),
+      ],
+      automations: [{ id: 'auto', name: 'Auto', status: 'ACTIVE', nextRunAt: NOW + 60_000 }],
+    };
+    const cards = buildCards(snapshot, {
+      now: NOW,
+      limit: 3,
+      update: { version: '1.7.0', url: 'https://github.com/jetcar/streamdek/releases/tag/v1.7.0' },
+    });
+
+    expect(cards.map((card) => card.id)).toEqual(['codex:newest', 'update:1.7.0', 'automation:auto']);
+    expect(cards[1]).toMatchObject({
+      status: 'update',
+      subtitle: 'Open installer',
+      source: 'update',
+    });
+  });
+
   it('limits cards to the available keys', () => {
     const snapshot: CodexSnapshot = {
       threads: Array.from({ length: 20 }, (_, index) => thread({ id: String(index) })),

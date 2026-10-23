@@ -1,9 +1,11 @@
 import type { AutomationRecord, CardStatus, CodexSnapshot, DeckCard, ThreadRecord } from './types.js';
+import type { UpdateInfo } from './update.js';
 
 export interface CardOptions {
   now?: number;
   staleAfterMs?: number;
   limit?: number;
+  update?: UpdateInfo;
 }
 
 export function threadStatus(thread: ThreadRecord): CardStatus {
@@ -42,8 +44,8 @@ function isActiveSession(card: DeckCard): boolean {
 }
 
 export function stabilizeActiveCards(previous: DeckCard[], next: DeckCard[]): DeckCard[] {
-  const automationIndex = next.findIndex((card) => card.source === 'automation');
-  const sessionCount = automationIndex < 0 ? next.length : automationIndex;
+  const systemIndex = next.findIndex((card) => card.source === 'automation' || card.source === 'update');
+  const sessionCount = systemIndex < 0 ? next.length : systemIndex;
   const nextSessions = next.slice(0, sessionCount);
   const nextById = new Map(nextSessions.map((card) => [card.id, card]));
   const placed = new Set<string>();
@@ -95,6 +97,18 @@ function automationCard(automation: AutomationRecord, now: number): DeckCard {
   };
 }
 
+function updateCard(update: UpdateInfo, now: number): DeckCard {
+  return {
+    id: `update:${update.version}`,
+    title: `Update ${update.version}`,
+    subtitle: 'Open installer',
+    status: 'update',
+    timestamp: now,
+    target: { kind: 'url', value: update.url },
+    source: 'update',
+  };
+}
+
 export function buildCards(snapshot: CodexSnapshot, options: CardOptions = {}): DeckCard[] {
   const now = options.now ?? Date.now();
   const staleAfterMs = options.staleAfterMs ?? 24 * 60 * 60 * 1000;
@@ -109,9 +123,14 @@ export function buildCards(snapshot: CodexSnapshot, options: CardOptions = {}): 
     .filter((automation) => automation.status.toUpperCase() === 'ACTIVE')
     .map((automation) => automationCard(automation, now))
     .sort((a, b) => a.timestamp - b.timestamp)
-    .slice(0, limit);
+    .slice(0, Math.max(0, limit - (options.update ? 1 : 0)));
 
-  return [...threads.slice(0, Math.max(0, limit - automations.length)), ...automations];
+  const updates = options.update ? [updateCard(options.update, now)] : [];
+  return [
+    ...threads.slice(0, Math.max(0, limit - automations.length - updates.length)),
+    ...updates,
+    ...automations,
+  ];
 }
 
 export function relativeTime(timestamp: number, now = Date.now()): string {

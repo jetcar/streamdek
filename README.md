@@ -12,6 +12,7 @@ Supports Windows, macOS, and Linux without the Elgato desktop application. The A
 - Blue `WORKING`: an agent or automation is running.
 - Red `ERROR`: the latest run failed.
 - Purple `SCHEDULED`: an enabled automation.
+- Orange `UPDATE`: a newer Streamdek release is available.
 - Green `DONE`: a recently completed task.
 - Gray `IDLE`: a recent task without a recorded run.
 
@@ -20,6 +21,8 @@ Codex and Claude Code cards show the working-folder name, falling back to the sa
 Session cards show a compact excerpt from the latest agent response on the line below the name. Working and asking cards retain their button position while they remain active, so response updates do not make them jump around.
 
 Session cards are ordered by latest activity, independent of status, so finishing a task changes its color without sending it behind older errors. Active scheduled automations occupy reserved buttons at the end, ordered by their next run.
+
+Streamdek checks its public GitHub release feed at startup and at most once every six hours. When a newer version is available, an `UPDATE` card reserves one button without displacing scheduled automations. Press it to open the release and choose the installer for this computer.
 
 ## Requirements
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.7.0 - 2026-10-23
+
+### Added
+
+- A cross-platform `UPDATE` card appears when a newer GitHub release is available and opens that release's installer page when pressed.
+
+### Changed
+
+- Streamdek checks for new public releases at startup and at most once every six hours.
+
 ## 1.6.2 - 2026-10-23
 
 ### Fixed

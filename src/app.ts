@@ -6,6 +6,7 @@ import { DeckController } from './deck.js';
 import { openDeckTarget, runtimeDirectory } from './platform.js';
 import { buildCards, stabilizeActiveCards } from './status.js';
 import type { DeckCard } from './types.js';
+import { installedVersion, UpdateChecker } from './update.js';
 import { WifiServer } from './wifi.js';
 
 const runtimeRoot = runtimeDirectory();
@@ -45,6 +46,7 @@ writeFileSync(pidPath, String(process.pid));
 const reader = new CodexStateReader();
 const claudeReader = new ClaudeStateReader();
 const controller = new DeckController(log);
+const updates = new UpdateChecker(installedVersion());
 const wifi = new WifiServer({
   tokenPath: join(runtimeRoot, 'wifi-token'),
   port: wifiPort,
@@ -55,6 +57,8 @@ let stopping = false;
 let lastError = '';
 let lastErrorAt = 0;
 let wifiCards: DeckCard[] = [];
+let updateCheck: Promise<void> | undefined;
+let loggedUpdateVersion = '';
 
 function logThrottled(message: string, error: unknown): void {
   const detail = error instanceof Error ? error.message : String(error);
@@ -67,7 +71,23 @@ function logThrottled(message: string, error: unknown): void {
   }
 }
 
+function refreshUpdateOffer(): void {
+  if (updateCheck) return;
+  updateCheck = updates.check()
+    .then((available) => {
+      if (available && available.version !== loggedUpdateVersion) {
+        loggedUpdateVersion = available.version;
+        log(`Update ${available.version} is available`);
+      }
+    })
+    .catch((error) => logThrottled('Update check failed', error))
+    .finally(() => {
+      updateCheck = undefined;
+    });
+}
+
 async function tick(): Promise<void> {
+  refreshUpdateOffer();
   let deckAvailable = controller.connected;
   try {
     if (!deckAvailable) deckAvailable = await controller.connect();
@@ -81,7 +101,7 @@ async function tick(): Promise<void> {
   try {
     const snapshot = reader.read();
     snapshot.threads.push(...claudeReader.read(Date.now() - staleHours * 60 * 60 * 1_000));
-    const cardOptions = { staleAfterMs: staleHours * 60 * 60 * 1_000 };
+    const cardOptions = { staleAfterMs: staleHours * 60 * 60 * 1_000, update: updates.available };
     const deckCards = buildCards(snapshot, { ...cardOptions, limit: 15 });
     wifiCards = stabilizeActiveCards(wifiCards, buildCards(snapshot, { ...cardOptions, limit: 100 }));
     wifi.publish(wifiCards);

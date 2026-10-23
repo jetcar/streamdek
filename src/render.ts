@@ -7,6 +7,7 @@ const THEME: Record<CardStatus, { background: string; accent: string; label: str
   thinking: { background: '#10243a', accent: '#48a8ff', label: 'WORKING' },
   error: { background: '#351010', accent: '#ff5147', label: 'ERROR' },
   scheduled: { background: '#26153a', accent: '#b981ff', label: 'SCHEDULED' },
+  update: { background: '#39290d', accent: '#ffb52e', label: 'UPDATE' },
   done: { background: '#112d22', accent: '#46d68c', label: 'DONE' },
   idle: { background: '#1e2228', accent: '#929aa5', label: 'IDLE' },
 };
@@ -64,7 +65,7 @@ export async function renderCard(card: DeckCard, size: number, now = Date.now())
       <text x="5" y="17" fill="${theme.accent}" font-family="Arial, sans-serif" font-size="7" font-weight="700">${theme.label}</text>
       <text x="5" y="34" fill="#ffffff" font-family="Arial, sans-serif" font-size="10" font-weight="700">${escapeXml(lineOne)}</text>
       <text x="5" y="46" fill="${card.subtitle ? '#c7d0da' : '#ffffff'}" font-family="Arial, sans-serif" font-size="${card.subtitle ? '7' : '10'}" font-weight="${card.subtitle ? '400' : '700'}">${escapeXml(lineTwo)}</text>
-      <text x="5" y="64" fill="#aeb8c4" font-family="Arial, sans-serif" font-size="8">${card.source === 'automation' ? 'AUTO ' : card.source === 'claude' ? 'CLAUDE ' : ''}${relativeTime(card.timestamp, now)}</text>
+      <text x="5" y="64" fill="#aeb8c4" font-family="Arial, sans-serif" font-size="8">${card.source === 'automation' ? 'AUTO ' : card.source === 'claude' ? 'CLAUDE ' : card.source === 'update' ? 'RELEASE ' : ''}${relativeTime(card.timestamp, now)}</text>
     </svg>
   `);
 
