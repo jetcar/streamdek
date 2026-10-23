@@ -15,6 +15,7 @@ data class UiState(
     val cards: List<AgentCard> = emptyList(),
     val pairing: Boolean = false,
     val message: String? = null,
+    val paired: Boolean = false,
 )
 
 class StreamdekViewModel(application: Application) : AndroidViewModel(application) {
@@ -25,7 +26,7 @@ class StreamdekViewModel(application: Application) : AndroidViewModel(applicatio
     private var reconnect = true
 
     var state by mutableStateOf(
-        UiState(address = preferences.getString("address", "") ?: ""),
+        UiState(address = preferences.getString("address", "") ?: "", paired = token != null),
     )
         private set
 
@@ -70,7 +71,7 @@ class StreamdekViewModel(application: Application) : AndroidViewModel(applicatio
                         token = it.token
                         preferences.edit().putString("address", it.address).putString("token", it.token).apply()
                         reconnect = true
-                        state = state.copy(address = it.address, code = "", pairing = false)
+                        state = state.copy(address = it.address, code = "", pairing = false, paired = true)
                         connectSaved()
                     }.onFailure {
                         state = state.copy(pairing = false, message = it.message ?: "Pairing failed")
