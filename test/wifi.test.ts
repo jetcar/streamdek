@@ -64,6 +64,8 @@ describe('WifiServer', () => {
     expect(response.headers.get('content-security-policy')).toContain("connect-src 'self' ws: wss:");
     expect(body).toContain('<title>Streamdek</title>');
     expect(body).toContain('viewport-fit=cover');
+    expect(body).toContain('Request access');
+    expect(body).not.toContain('Enter the six-digit code');
   });
 
   it('pairs with the displayed code', async () => {

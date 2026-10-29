@@ -18,7 +18,7 @@
     #pair p { margin: 0 0 1rem; color: #b7bec8; line-height: 1.5; }
     form { display: flex; gap: .65rem; }
     input, form button { min-height: 3rem; border-radius: .7rem; font: inherit; }
-    input { min-width: 0; flex: 1; border: 1px solid #4a535f; padding: 0 .9rem; background: #090b0e; color: #fff; font-size: 1.15rem; letter-spacing: .2em; }
+    input { min-width: 0; flex: 1; border: 1px solid #4a535f; padding: 0 .9rem; background: #090b0e; color: #fff; font-size: 1rem; }
     form button { border: 0; padding: 0 1.1rem; background: #48a8ff; color: #06111c; font-weight: 800; cursor: pointer; }
     #pair-error { min-height: 1.25rem; margin-top: .8rem; color: #ff6a61; }
     #cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr)); gap: clamp(.6rem, 1.5vw, 1rem); }
@@ -38,17 +38,18 @@
 <body>
   <header><h1>STREAMDEK</h1><span id="connection">Not paired</span></header>
   <main>
-    <section id="pair"><h2>Pair this screen</h2><p>Enter the six-digit code shown in the Streamdek desktop log.</p><form id="pair-form"><input id="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="123456" aria-label="Pairing code" required><button>Pair</button></form><div id="pair-error" role="alert"></div></section>
+    <section id="pair"><h2>Connect this screen</h2><p>Request access, then approve the notification on your desktop.</p><form id="pair-form"><input id="device-name" maxlength="80" placeholder="Screen name" aria-label="Screen name" required><button>Request access</button></form><div id="pair-error" role="status"></div></section>
     <section id="cards" aria-live="polite" hidden></section>
     <div id="empty">No recent sessions</div>
   </main>
   <script>
     (() => {
       const storageKey = 'streamdek-token';
-      const pair = document.querySelector('#pair'); const form = document.querySelector('#pair-form'); const code = document.querySelector('#code');
+      const pair = document.querySelector('#pair'); const form = document.querySelector('#pair-form'); const deviceName = document.querySelector('#device-name');
       const error = document.querySelector('#pair-error'); const cards = document.querySelector('#cards'); const empty = document.querySelector('#empty'); const connection = document.querySelector('#connection');
       let socket; let retry;
-      function showPair(message = '') { clearTimeout(retry); cards.hidden = true; empty.style.display = 'none'; pair.hidden = false; connection.textContent = 'Not paired'; error.textContent = message; }
+      deviceName.value = navigator.userAgentData?.platform || navigator.platform || 'Web display';
+      function showPair(message = '') { clearTimeout(retry); cards.hidden = true; empty.style.display = 'none'; pair.hidden = false; connection.textContent = 'Not connected'; error.textContent = message; }
       function render(items) {
         cards.replaceChildren();
         for (const item of items) {
@@ -69,14 +70,25 @@
         socket.addEventListener('open', () => { connection.textContent = 'Live'; });
         socket.addEventListener('message', (event) => { const message = JSON.parse(event.data); if (message.type === 'snapshot' && Array.isArray(message.cards)) render(message.cards); });
         socket.addEventListener('close', (event) => {
-          if (event.code === 1008 || (event.code === 1006 && !cards.childElementCount)) { localStorage.removeItem(storageKey); showPair('Pairing expired. Enter the current code.'); return; }
+          if (event.code === 1008 || (event.code === 1006 && !cards.childElementCount)) { localStorage.removeItem(storageKey); showPair('Access expired. Request approval again.'); return; }
           connection.textContent = 'Reconnecting…'; retry = setTimeout(connect, 2000);
         });
       }
       form.addEventListener('submit', async (event) => {
         event.preventDefault(); error.textContent = '';
-        try { const response = await fetch('/v1/pair', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: code.value }) }); const body = await response.json(); if (!response.ok || typeof body.token !== 'string') throw new Error(body.error || 'Pairing failed'); localStorage.setItem(storageKey, body.token); connect(); }
-        catch (reason) { error.textContent = reason instanceof Error ? reason.message : 'Pairing failed'; }
+        try {
+          const response = await fetch('/v1/access-requests', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ deviceName: deviceName.value }) });
+          const body = await response.json(); if (!response.ok || typeof body.requestId !== 'string') throw new Error(body.error || 'Request failed');
+          error.textContent = 'Waiting for approval on the desktop…';
+          const deadline = Date.now() + 300000;
+          while (Date.now() < deadline) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            const status = await fetch(`/v1/access-requests/${encodeURIComponent(body.requestId)}`); const result = await status.json();
+            if (status.ok && typeof result.token === 'string') { localStorage.setItem(storageKey, result.token); connect(); return; }
+            if (status.status !== 202) throw new Error(result.error || 'Approval expired');
+          }
+          throw new Error('Approval expired');
+        } catch (reason) { error.textContent = reason instanceof Error ? reason.message : 'Request failed'; }
       });
       connect();
     })();
