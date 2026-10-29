@@ -50,6 +50,18 @@ function nextMessage(socket: WebSocket): Promise<Record<string, unknown>> {
 }
 
 describe('WifiServer', () => {
+  it('serves the responsive browser display', async () => {
+    const server = await fixture();
+    const response = await fetch(`http://127.0.0.1:${server.port}/`);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('text/html; charset=utf-8');
+    expect(response.headers.get('content-security-policy')).toContain("connect-src 'self' ws: wss:");
+    expect(body).toContain('<title>Streamdek</title>');
+    expect(body).toContain('viewport-fit=cover');
+  });
+
   it('pairs with the displayed code', async () => {
     const server = await fixture();
     const response = await fetch(`http://127.0.0.1:${server.port}/v1/pair`, {
@@ -101,6 +113,24 @@ describe('WifiServer', () => {
     socket.send(JSON.stringify({ type: 'open', cardId: 'thread-1' }));
     expect(await nextMessage(socket)).toEqual({ type: 'opened', cardId: 'thread-1' });
     expect(opened).toEqual(card);
+    socket.close();
+  });
+
+  it('accepts a paired browser WebSocket token in the URL', async () => {
+    const server = await fixture();
+    server.publish([card]);
+    const socket = new WebSocket(`ws://127.0.0.1:${server.port}/v1/cards?token=test-token`);
+
+    const message = await nextMessage(socket);
+    expect(message.type).toBe('snapshot');
+    expect(message.cards).toEqual([{
+      id: 'thread-1',
+      title: 'streamdek',
+      subtitle: 'Ready for review',
+      status: 'done',
+      timestamp: 123,
+      source: 'thread',
+    }]);
     socket.close();
   });
 });

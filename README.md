@@ -1,8 +1,8 @@
 # Streamdek Agent Status
 
-Show live Codex and Claude Code sessions plus active Codex scheduled automations on an Elgato Stream Deck or Android phone. Press a card to reopen its task on the desktop.
+Show live Codex and Claude Code sessions plus active Codex scheduled automations on an Elgato Stream Deck, Android phone, or any web browser. Press a card to reopen its task on the desktop.
 
-Supports Windows, macOS, and Linux without the Elgato desktop application. The Android display connects directly over local Wi-Fi.
+Supports Windows, macOS, and Linux without the Elgato desktop application. Android and browser displays connect directly over local Wi-Fi.
 
 ![Streamdek showing live AI coding-agent statuses on a Stream Deck](docs/images/streamdek-dashboard.png)
 
@@ -27,7 +27,7 @@ Streamdek checks its public GitHub release feed at startup and at most once ever
 ## Requirements
 
 - ChatGPT desktop with Codex, Claude Code, or both.
-- A connected Elgato Stream Deck, an Android 8+ phone on the same Wi-Fi network, or both.
+- A connected Elgato Stream Deck, an Android 8+ phone, a web browser on the same Wi-Fi network, or any combination.
 - Claude Code must be available as `claude` on `PATH` to reopen Claude sessions.
 
 The Linux ChatGPT app is currently a preview supported on Ubuntu 24.04/26.04, Debian 13, Fedora 43/44, and current Arch Linux. Other systemd desktops may run Streamdek, but are not formally supported by OpenAI.
@@ -45,6 +45,12 @@ Install `streamdek-*-android.apk` from the latest release. Keep the desktop and 
 The app reconnects automatically and stores only the server address and random pairing token. Tapping a card asks the desktop to open that Codex or Claude session. Windows may show a firewall prompt the first time; allow access on private networks.
 
 Wi-Fi transport is authenticated but not encrypted. Do not expose port `8910` to the internet or use it on an untrusted network.
+
+## Web display
+
+On any phone, tablet, computer, or second screen on the same trusted network, open `http://DESKTOP-IP:8910`, such as `http://192.168.1.20:8910`. Enter the six-digit pairing code from the desktop log once. The browser stores the pairing token locally, reconnects automatically, shows the same live cards and colors, and opens a task on the desktop when tapped.
+
+No app installation is needed. Keep the Streamdek desktop service running, and allow port `8910` through the desktop firewall on private networks.
 
 ## Install
 
@@ -85,7 +91,7 @@ Optional environment variables:
 
 - `STREAMDEK_STALE_HOURS` — task expiry, default `24`.
 - `STREAMDEK_POLL_MS` — refresh interval, default `2000`.
-- `STREAMDEK_WIFI_PORT` — Android display server port, default `8910`.
+- `STREAMDEK_WIFI_PORT` — Android and web display server port, default `8910`.
 - `STREAMDEK_STATE_DIR` — absolute directory for logs and the process file.
 - `CODEX_HOME` — Codex state directory, default `~/.codex`.
 - `CLAUDE_CONFIG_DIR` — Claude Code state directory, default `~/.claude`.

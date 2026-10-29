@@ -56,7 +56,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path release/payload/scripts -Force | Out-Null
-          Copy-Item -Recurse dist, node_modules release/payload/
+          Copy-Item -Recurse dist, node_modules, web release/payload/
           Copy-Item README.md, CHANGELOG.md, package.json release/payload/
           Copy-Item scripts/uninstall.ps1, scripts/register-windows-task.ps1, scripts/watch-windows.ps1 release/payload/scripts/
           Copy-Item (Get-Command node).Source release/payload/node.exe
@@ -81,7 +81,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release/payload
-          cp -R dist node_modules release/payload/
+          cp -R dist node_modules web release/payload/
           cp README.md CHANGELOG.md package.json release/payload/
           cp -L "$(command -v node)" release/payload/node
           chmod 0755 release/payload/node

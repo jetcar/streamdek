@@ -9,6 +9,7 @@ import type { Log } from './deck.js';
 import type { DeckCard } from './types.js';
 
 export const WIFI_PROTOCOL_VERSION = 1;
+const WEB_APP = readFileSync(new URL('../web/index.html', import.meta.url), 'utf8');
 
 export interface WifiCard {
   id: string;
@@ -97,8 +98,8 @@ export class WifiServer {
     this.code = options.pairingCode ?? String(randomInt(100_000, 1_000_000));
     this.http = createServer((request, response) => void this.handleHttp(request, response));
     this.http.on('upgrade', (request, socket, head) => {
-      const path = new URL(request.url ?? '/', 'http://localhost').pathname;
-      if (path !== '/v1/cards' || !this.authorized(request)) {
+      const url = new URL(request.url ?? '/', 'http://localhost');
+      if (url.pathname !== '/v1/cards' || !this.authorized(request, url)) {
         socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
         socket.destroy();
         return;
@@ -139,7 +140,7 @@ export class WifiServer {
         txt: { protocol: String(WIFI_PROTOCOL_VERSION) },
       });
     }
-    this.options.log(`Wi-Fi display listening on port ${this.port}; pairing code ${this.code}`);
+    this.options.log(`Wi-Fi display listening on port ${this.port}; web display http://${hostname()}:${this.port}; pairing code ${this.code}`);
   }
 
   publish(cards: DeckCard[]): void {
@@ -163,13 +164,27 @@ export class WifiServer {
     });
   }
 
-  private authorized(request: IncomingMessage): boolean {
+  private authorized(request: IncomingMessage, url: URL): boolean {
     const header = request.headers.authorization ?? '';
-    return header.startsWith('Bearer ') && sameSecret(header.slice(7), this.token);
+    const bearer = header.startsWith('Bearer ') ? header.slice(7) : '';
+    const queryToken = url.searchParams.get('token') ?? '';
+    return (bearer !== '' && sameSecret(bearer, this.token))
+      || (queryToken !== '' && sameSecret(queryToken, this.token));
   }
 
   private async handleHttp(request: IncomingMessage, response: ServerResponse): Promise<void> {
     const url = new URL(request.url ?? '/', 'http://localhost');
+    if (request.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
+      response.writeHead(200, {
+        'content-type': 'text/html; charset=utf-8',
+        'content-length': Buffer.byteLength(WEB_APP),
+        'cache-control': 'no-store',
+        'content-security-policy': "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self' ws: wss:; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+        'x-content-type-options': 'nosniff',
+      });
+      response.end(WEB_APP);
+      return;
+    }
     if (request.method === 'GET' && url.pathname === '/v1/info') {
       json(response, 200, {
         service: 'streamdek',

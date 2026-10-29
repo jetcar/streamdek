@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090b0e">
+  <title>Streamdek</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #090b0e; color: #f6f7f8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at top, #1a2029 0, #090b0e 48%); }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) 1rem max(1rem, env(safe-area-inset-left)); }
+    h1 { margin: 0; font-size: clamp(1.2rem, 3vw, 1.7rem); letter-spacing: .08em; }
+    #connection { color: #929aa5; font-size: .85rem; }
+    main { padding: .25rem max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)); }
+    #pair { width: min(28rem, 100%); margin: 14vh auto 0; padding: 1.5rem; border: 1px solid #343a43; border-radius: 1.25rem; background: #15191f; box-shadow: 0 1.5rem 5rem #0008; }
+    #pair h2 { margin: 0 0 .5rem; }
+    #pair p { margin: 0 0 1rem; color: #b7bec8; line-height: 1.5; }
+    form { display: flex; gap: .65rem; }
+    input, form button { min-height: 3rem; border-radius: .7rem; font: inherit; }
+    input { min-width: 0; flex: 1; border: 1px solid #4a535f; padding: 0 .9rem; background: #090b0e; color: #fff; font-size: 1.15rem; letter-spacing: .2em; }
+    form button { border: 0; padding: 0 1.1rem; background: #48a8ff; color: #06111c; font-weight: 800; cursor: pointer; }
+    #pair-error { min-height: 1.25rem; margin-top: .8rem; color: #ff6a61; }
+    #cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr)); gap: clamp(.6rem, 1.5vw, 1rem); }
+    .card { --accent: #929aa5; position: relative; min-height: clamp(8rem, 17vw, 11rem); overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent) 55%, #111); border-radius: 1rem; padding: 1rem; background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 22%, #101318), #101318 70%); color: #fff; text-align: left; cursor: pointer; box-shadow: inset 0 .2rem 0 var(--accent), 0 .8rem 2rem #0004; transition: transform .12s ease, filter .12s ease; }
+    .card:active { transform: scale(.98); } .card:hover { filter: brightness(1.12); }
+    .status { color: var(--accent); font-size: .7rem; font-weight: 900; letter-spacing: .12em; }
+    .title { display: block; margin-top: .55rem; font-size: clamp(1rem, 2.6vw, 1.25rem); font-weight: 800; overflow-wrap: anywhere; }
+    .subtitle { display: -webkit-box; margin-top: .35rem; color: #d5d9de; line-height: 1.3; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .source { position: absolute; right: .8rem; bottom: .65rem; color: #ffffff8c; font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .asking { --accent: #ff4d83; } .thinking { --accent: #48a8ff; } .error { --accent: #ff5147; }
+    .scheduled { --accent: #b981ff; } .update { --accent: #ffb52e; } .done { --accent: #46d68c; } .idle { --accent: #929aa5; }
+    #empty { display: none; place-items: center; min-height: 55vh; color: #929aa5; text-align: center; }
+    [hidden] { display: none !important; }
+    @media (min-width: 1000px) { #cards { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+  </style>
+</head>
+<body>
+  <header><h1>STREAMDEK</h1><span id="connection">Not paired</span></header>
+  <main>
+    <section id="pair"><h2>Pair this screen</h2><p>Enter the six-digit code shown in the Streamdek desktop log.</p><form id="pair-form"><input id="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="123456" aria-label="Pairing code" required><button>Pair</button></form><div id="pair-error" role="alert"></div></section>
+    <section id="cards" aria-live="polite" hidden></section>
+    <div id="empty">No recent sessions</div>
+  </main>
+  <script>
+    (() => {
+      const storageKey = 'streamdek-token';
+      const pair = document.querySelector('#pair'); const form = document.querySelector('#pair-form'); const code = document.querySelector('#code');
+      const error = document.querySelector('#pair-error'); const cards = document.querySelector('#cards'); const empty = document.querySelector('#empty'); const connection = document.querySelector('#connection');
+      let socket; let retry;
+      function showPair(message = '') { clearTimeout(retry); cards.hidden = true; empty.style.display = 'none'; pair.hidden = false; connection.textContent = 'Not paired'; error.textContent = message; }
+      function render(items) {
+        cards.replaceChildren();
+        for (const item of items) {
+          const button = document.createElement('button'); button.className = `card ${item.status}`; button.type = 'button';
+          const status = document.createElement('span'); status.className = 'status'; status.textContent = item.status === 'thinking' ? 'WORKING' : item.status.toUpperCase();
+          const title = document.createElement('span'); title.className = 'title'; title.textContent = item.title; button.append(status, title);
+          if (item.subtitle) { const subtitle = document.createElement('span'); subtitle.className = 'subtitle'; subtitle.textContent = item.subtitle; button.append(subtitle); }
+          const source = document.createElement('span'); source.className = 'source'; source.textContent = item.source; button.append(source);
+          button.addEventListener('click', () => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'open', cardId: item.id })); });
+          cards.append(button);
+        }
+        cards.hidden = items.length === 0; empty.style.display = items.length === 0 ? 'grid' : 'none';
+      }
+      function connect() {
+        const token = localStorage.getItem(storageKey); if (!token) return showPair();
+        pair.hidden = true; connection.textContent = 'Connecting…';
+        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'; socket = new WebSocket(`${protocol}//${location.host}/v1/cards?token=${encodeURIComponent(token)}`);
+        socket.addEventListener('open', () => { connection.textContent = 'Live'; });
+        socket.addEventListener('message', (event) => { const message = JSON.parse(event.data); if (message.type === 'snapshot' && Array.isArray(message.cards)) render(message.cards); });
+        socket.addEventListener('close', (event) => {
+          if (event.code === 1008 || (event.code === 1006 && !cards.childElementCount)) { localStorage.removeItem(storageKey); showPair('Pairing expired. Enter the current code.'); return; }
+          connection.textContent = 'Reconnecting…'; retry = setTimeout(connect, 2000);
+        });
+      }
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault(); error.textContent = '';
+        try { const response = await fetch('/v1/pair', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code: code.value }) }); const body = await response.json(); if (!response.ok || typeof body.token !== 'string') throw new Error(body.error || 'Pairing failed'); localStorage.setItem(storageKey, body.token); connect(); }
+        catch (reason) { error.textContent = reason instanceof Error ? reason.message : 'Pairing failed'; }
+      });
+      connect();
+    })();
+  </script>
+</body>
+</html>

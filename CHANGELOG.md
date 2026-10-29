@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.0 - 2026-10-29
+
+### Added
+
+- Responsive browser display for phones, tablets, computers, and second screens, served by the desktop service on port `8910`.
+- Six-digit browser pairing, automatic reconnection, live session cards, and tap-to-open behavior.
+
 ## 1.7.1 - 2026-10-23
 
 ### Fixed
