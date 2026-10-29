@@ -64,6 +64,35 @@ export function openExternal(url: string, log: Log): void {
   }
 }
 
+export function notificationCommand(
+  message: string,
+  platform = process.platform,
+): { command: string; args: string[] } {
+  const supported = platform as SupportedPlatform;
+  if (supported === 'win32') {
+    const encoded = Buffer.from(message, 'utf8').toString('base64');
+    const script = `$m=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}'));$e=[Security.SecurityElement]::Escape($m);$x=New-Object Windows.Data.Xml.Dom.XmlDocument;$x.LoadXml('<toast><visual><binding template="ToastGeneric"><text>Streamdek</text><text>'+$e+'</text></binding></visual></toast>');[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('Streamdek').Show([Windows.UI.Notifications.ToastNotification]::new($x))`;
+    return { command: 'powershell.exe', args: ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', script] };
+  }
+  if (supported === 'darwin') {
+    return { command: 'osascript', args: ['-e', 'on run argv', '-e', 'display notification (item 1 of argv) with title "Streamdek"', '-e', 'end run', message] };
+  }
+  if (supported === 'linux') return { command: 'notify-send', args: ['Streamdek', message] };
+  throw new Error(`Unsupported platform: ${platform}`);
+}
+
+export function requestDeviceApproval(deviceName: string, approvalUrl: string, log: Log): void {
+  try {
+    const selected = notificationCommand(`${deviceName} is requesting display access. Approve it on this computer.`);
+    const child = spawn(selected.command, selected.args, { detached: true, stdio: 'ignore', windowsHide: true });
+    child.on('error', (error) => log('Could not show device approval notification', error));
+    child.unref();
+  } catch (error) {
+    log('Could not show device approval notification', error);
+  }
+  openExternal(approvalUrl, log);
+}
+
 export function claudeLauncher(
   sessionId: string,
   platform = process.platform,

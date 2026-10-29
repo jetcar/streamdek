@@ -29,6 +29,13 @@ interface WifiServerOptions {
   pairingCode?: string;
   token?: string;
   advertise?: boolean;
+  requestApproval?: (deviceName: string, approvalUrl: string) => void;
+}
+
+interface AccessRequest {
+  deviceName: string;
+  expiresAt: number;
+  approved: boolean;
 }
 
 function json(response: ServerResponse, status: number, value: unknown): void {
@@ -90,6 +97,7 @@ export class WifiServer {
   private cards: DeckCard[] = [];
   private digest = '';
   private readonly pairingAttempts = new Map<string, { startedAt: number; count: number }>();
+  private readonly accessRequests = new Map<string, AccessRequest>();
 
   constructor(private readonly options: WifiServerOptions) {
     this.host = options.host ?? '0.0.0.0';
@@ -185,6 +193,73 @@ export class WifiServer {
       response.end(WEB_APP);
       return;
     }
+    if (request.method === 'POST' && url.pathname === '/v1/access-requests') {
+      try {
+        const body = await readBody(request) as { deviceName?: unknown };
+        if (typeof body.deviceName !== 'string' || body.deviceName.trim().length === 0) {
+          json(response, 400, { error: 'Device name is required' });
+          return;
+        }
+        this.pruneAccessRequests();
+        const id = randomBytes(16).toString('base64url');
+        const deviceName = body.deviceName.trim().slice(0, 80);
+        this.accessRequests.set(id, { deviceName, expiresAt: Date.now() + 5 * 60_000, approved: false });
+        const approvalUrl = `http://127.0.0.1:${this.port}/approve?id=${encodeURIComponent(id)}`;
+        this.options.requestApproval?.(deviceName, approvalUrl);
+        json(response, 202, { requestId: id, expiresInSeconds: 300 });
+      } catch {
+        json(response, 400, { error: 'Invalid JSON body' });
+      }
+      return;
+    }
+    const accessMatch = url.pathname.match(/^\/v1\/access-requests\/([A-Za-z0-9_-]+)$/);
+    if (request.method === 'GET' && accessMatch) {
+      const pending = this.accessRequests.get(accessMatch[1]);
+      if (!pending || pending.expiresAt <= Date.now()) {
+        this.accessRequests.delete(accessMatch[1]);
+        json(response, 404, { error: 'Access request expired' });
+      } else if (!pending.approved) {
+        json(response, 202, { status: 'pending' });
+      } else {
+        this.accessRequests.delete(accessMatch[1]);
+        json(response, 200, { status: 'approved', token: this.token, protocolVersion: WIFI_PROTOCOL_VERSION });
+      }
+      return;
+    }
+    if (request.method === 'GET' && url.pathname === '/approve') {
+      if (!this.isLoopback(request)) {
+        json(response, 403, { error: 'Approval is available only on the desktop' });
+        return;
+      }
+      const id = url.searchParams.get('id') ?? '';
+      const pending = this.accessRequests.get(id);
+      if (!pending || pending.expiresAt <= Date.now()) {
+        response.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
+        response.end('Access request expired.');
+        return;
+      }
+      const safeName = pending.deviceName.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] ?? character);
+      const body = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Approve Streamdek display</title><style>body{color-scheme:dark;font:18px system-ui;background:#090b0e;color:#fff;display:grid;place-items:center;min-height:100vh;margin:0}.box{background:#171b21;padding:2rem;border-radius:1rem;max-width:28rem}button{font:inherit;font-weight:700;background:#46d68c;border:0;border-radius:.6rem;padding:.8rem 1.2rem;cursor:pointer}</style></head><body><div class="box"><h1>Approve new display?</h1><p>${safeName} wants to view Streamdek sessions and open tasks on this computer.</p><form method="post" action="/v1/access-requests/${id}/approve"><button>Approve</button></form></div></body></html>`;
+      response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'content-length': Buffer.byteLength(body), 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
+      response.end(body);
+      return;
+    }
+    const approveMatch = url.pathname.match(/^\/v1\/access-requests\/([A-Za-z0-9_-]+)\/approve$/);
+    if (request.method === 'POST' && approveMatch) {
+      if (!this.isLoopback(request)) {
+        json(response, 403, { error: 'Approval is available only on the desktop' });
+        return;
+      }
+      const pending = this.accessRequests.get(approveMatch[1]);
+      if (!pending || pending.expiresAt <= Date.now()) {
+        json(response, 404, { error: 'Access request expired' });
+        return;
+      }
+      pending.approved = true;
+      response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+      response.end('<!doctype html><html><body style="color-scheme:dark;font:18px system-ui;background:#090b0e;color:#fff;padding:3rem"><h1>Display approved</h1><p>You can close this page.</p></body></html>');
+      return;
+    }
     if (request.method === 'GET' && url.pathname === '/v1/info') {
       json(response, 200, {
         service: 'streamdek',
@@ -212,6 +287,18 @@ export class WifiServer {
       return;
     }
     json(response, 404, { error: 'Not found' });
+  }
+
+  private isLoopback(request: IncomingMessage): boolean {
+    const address = request.socket.remoteAddress ?? '';
+    return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1';
+  }
+
+  private pruneAccessRequests(): void {
+    const now = Date.now();
+    for (const [id, request] of this.accessRequests) {
+      if (request.expiresAt <= now) this.accessRequests.delete(id);
+    }
   }
 
   private allowPairing(request: IncomingMessage): boolean {

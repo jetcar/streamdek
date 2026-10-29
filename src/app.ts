@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { CodexStateReader } from './codex-state.js';
 import { ClaudeStateReader } from './claude-state.js';
 import { DeckController } from './deck.js';
-import { openDeckTarget, runtimeDirectory } from './platform.js';
+import { openDeckTarget, requestDeviceApproval, runtimeDirectory } from './platform.js';
 import { buildCards, stabilizeActiveCards } from './status.js';
 import type { DeckCard } from './types.js';
 import { installedVersion, UpdateChecker } from './update.js';
@@ -52,6 +52,7 @@ const wifi = new WifiServer({
   port: wifiPort,
   log,
   openCard: (card) => openDeckTarget(card.target, log),
+  requestApproval: (deviceName, approvalUrl) => requestDeviceApproval(deviceName, approvalUrl, log),
 });
 let stopping = false;
 let lastError = '';

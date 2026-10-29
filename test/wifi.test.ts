@@ -24,7 +24,10 @@ afterEach(async () => {
   for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true });
 });
 
-async function fixture(onOpen: (value: DeckCard) => void = () => undefined): Promise<WifiServer> {
+async function fixture(
+  onOpen: (value: DeckCard) => void = () => undefined,
+  onRequest: (deviceName: string, approvalUrl: string) => void = () => undefined,
+): Promise<WifiServer> {
   const directory = mkdtempSync(join(tmpdir(), 'streamdek-wifi-'));
   directories.push(directory);
   const server = new WifiServer({
@@ -36,6 +39,7 @@ async function fixture(onOpen: (value: DeckCard) => void = () => undefined): Pro
     advertise: false,
     log: () => undefined,
     openCard: onOpen,
+    requestApproval: onRequest,
   });
   servers.push(server);
   await server.start();
@@ -72,6 +76,35 @@ describe('WifiServer', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ token: 'test-token', protocolVersion: 1 });
+  });
+
+  it('grants browser access after approval on the desktop', async () => {
+    let approvalUrl = '';
+    const server = await fixture(undefined, (deviceName, url) => {
+      expect(deviceName).toBe('Office tablet');
+      approvalUrl = url;
+    });
+    const requested = await fetch(`http://127.0.0.1:${server.port}/v1/access-requests`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ deviceName: 'Office tablet' }),
+    });
+    const request = await requested.json() as { requestId: string };
+
+    expect(requested.status).toBe(202);
+    expect(approvalUrl).toContain(`id=${request.requestId}`);
+    const pending = await fetch(`http://127.0.0.1:${server.port}/v1/access-requests/${request.requestId}`);
+    expect(pending.status).toBe(202);
+    expect(await pending.json()).toEqual({ status: 'pending' });
+
+    const approvalPage = await fetch(approvalUrl);
+    expect(await approvalPage.text()).toContain('Office tablet');
+    const approved = await fetch(`http://127.0.0.1:${server.port}/v1/access-requests/${request.requestId}/approve`, { method: 'POST' });
+    expect(approved.status).toBe(200);
+
+    const granted = await fetch(`http://127.0.0.1:${server.port}/v1/access-requests/${request.requestId}`);
+    expect(granted.status).toBe(200);
+    expect(await granted.json()).toEqual({ status: 'approved', token: 'test-token', protocolVersion: 1 });
   });
 
   it('rate limits invalid pairing attempts', async () => {

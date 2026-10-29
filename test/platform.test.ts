@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { claudeDirectory, claudeLauncher, codexDirectory, opener, runtimeDirectory } from '../src/platform.js';
+import { claudeDirectory, claudeLauncher, codexDirectory, notificationCommand, opener, runtimeDirectory } from '../src/platform.js';
 
 describe('runtimeDirectory', () => {
   it('uses the native state location on every supported platform', () => {
@@ -39,6 +39,22 @@ describe('opener', () => {
 
   it('rejects unsupported platforms', () => {
     expect(() => opener('aix')).toThrow('Unsupported platform');
+  });
+});
+
+describe('notificationCommand', () => {
+  it('uses native notification tools without interpolating the device name on macOS and Linux', () => {
+    expect(notificationCommand('Office tablet', 'darwin')).toEqual({
+      command: 'osascript',
+      args: ['-e', 'on run argv', '-e', 'display notification (item 1 of argv) with title "Streamdek"', '-e', 'end run', 'Office tablet'],
+    });
+    expect(notificationCommand('Office tablet', 'linux')).toEqual({ command: 'notify-send', args: ['Streamdek', 'Office tablet'] });
+  });
+
+  it('encodes notification text passed to PowerShell', () => {
+    const selected = notificationCommand("Tablet'; exit", 'win32');
+    expect(selected.command).toBe('powershell.exe');
+    expect(selected.args.join(' ')).not.toContain("Tablet'; exit");
   });
 });
 
