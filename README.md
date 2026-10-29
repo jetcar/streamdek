@@ -38,11 +38,12 @@ Quit the Elgato Stream Deck application if it is installed because only one appl
 
 Install `streamdek-*-android.apk` from the latest release. Keep the desktop and phone on the same trusted private Wi-Fi network.
 
-1. Start Streamdek on the desktop and open its log to find the six-digit pairing code.
+1. Start Streamdek on the desktop.
 2. Open the Android app and allow local-network access when requested.
-3. Select the discovered desktop, enter the code, and press **Pair**. If discovery is unavailable, enter the desktop IP and port, such as `192.168.1.20:8910`.
+3. Select a discovered desktop and press **Request access**. If discovery is unavailable, enter the desktop IP and port, such as `192.168.1.20:8910`.
+4. Approve the notification and local approval page that opens on the desktop.
 
-The app reconnects automatically and stores only the server address and random pairing token. Tapping a card asks the desktop to open that Codex or Claude session. Windows may show a firewall prompt the first time; allow access on private networks.
+The app reconnects automatically and stores only the server address and granted random token. Tapping a card asks the desktop to open that Codex or Claude session. Windows may show a firewall prompt the first time; allow access on private networks.
 
 Wi-Fi transport is authenticated but not encrypted. Do not expose port `8910` to the internet or use it on an untrusted network.
 

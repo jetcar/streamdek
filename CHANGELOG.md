@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.0 - 2026-10-29
+
+### Changed
+
+- Android discovers Streamdek desktops on the local network, requests access, and waits for approval on the selected PC.
+- Android no longer requires copying a six-digit pairing code.
+
 ## 1.8.1 - 2026-10-29
 
 ### Changed

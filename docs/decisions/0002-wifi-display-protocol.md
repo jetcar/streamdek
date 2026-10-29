@@ -6,7 +6,7 @@ Accepted
 
 ## Decision
 
-Expose card snapshots from the desktop service over an authenticated WebSocket and advertise the endpoint with DNS-SD. Pair Android clients with a six-digit code for compatibility. Browser displays instead create a five-minute access request; Streamdek notifies the desktop, opens a loopback-only approval page there, and releases the retained random bearer token only after approval. Browsers pass that token in the WebSocket URL because the browser WebSocket API cannot set an `Authorization` header. Serve the browser dashboard from the same local HTTP service so it needs no separate hosting or installation. Send structured card data rather than rendered images, and keep task targets only on the desktop.
+Expose card snapshots from the desktop service over an authenticated WebSocket and advertise the endpoint with DNS-SD. Android and browser displays create a five-minute access request; Streamdek notifies the desktop, opens a loopback-only approval page there, and releases the retained random bearer token only after approval. Native clients send that token in the `Authorization` header; browsers pass it in the WebSocket URL because the browser WebSocket API cannot set that header. Retain the older six-digit endpoint temporarily for already released Android clients. Serve the browser dashboard from the same local HTTP service so it needs no separate hosting or installation. Send structured card data rather than rendered images, and keep task targets only on the desktop.
 
 Use cleartext HTTP and WebSocket transport for the first LAN release. Restrict intended use to trusted private networks and revisit certificate-pinned TLS before supporting untrusted networks or remote access.
 
