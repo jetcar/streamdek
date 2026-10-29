@@ -15,21 +15,28 @@ class StreamdekClientTest {
     }
 
     @Test
-    fun pairsWithDesktopServer() {
+    fun requestsAndReceivesDesktopApproval() {
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
-        server.createContext("/v1/pair") { exchange ->
+        server.createContext("/v1/access-requests") { exchange ->
             exchange.requestBody.use { it.readBytes() }
-            val response = """{"token":"secret","protocolVersion":1}""".toByteArray()
-            exchange.sendResponseHeaders(200, response.size.toLong())
+            val response = if (exchange.requestMethod == "POST") {
+                """{"requestId":"request-1","expiresInSeconds":300}""".toByteArray()
+            } else {
+                """{"status":"approved","token":"secret","protocolVersion":1}""".toByteArray()
+            }
+            exchange.sendResponseHeaders(if (exchange.requestMethod == "POST") 202 else 200, response.size.toLong())
             exchange.responseBody.use { it.write(response) }
         }
         server.start()
         try {
             val latch = CountDownLatch(1)
+            val client = StreamdekClient()
             var pairing: StreamdekClient.Pairing? = null
-            StreamdekClient().pair("127.0.0.1:${server.address.port}", "123456") {
-                pairing = it.getOrThrow()
-                latch.countDown()
+            client.requestAccess("127.0.0.1:${server.address.port}", "Pixel") { requested ->
+                client.accessStatus(requested.getOrThrow()) {
+                    pairing = it.getOrThrow()
+                    latch.countDown()
+                }
             }
             require(latch.await(5, TimeUnit.SECONDS))
             assertEquals("secret", pairing?.token)

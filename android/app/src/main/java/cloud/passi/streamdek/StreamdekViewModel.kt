@@ -1,6 +1,7 @@
 package cloud.passi.streamdek
 
 import android.app.Application
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.getValue
@@ -10,7 +11,6 @@ import androidx.lifecycle.AndroidViewModel
 
 data class UiState(
     val address: String = "",
-    val code: String = "",
     val connection: ConnectionState = ConnectionState.Disconnected,
     val cards: List<AgentCard> = emptyList(),
     val pairing: Boolean = false,
@@ -60,10 +60,6 @@ class StreamdekViewModel(application: Application) : AndroidViewModel(applicatio
         state = state.copy(address = value, message = null)
     }
 
-    fun updateCode(value: String) {
-        state = state.copy(code = value.filter(Char::isDigit).take(6), message = null)
-    }
-
     fun startDiscovery() = runCatching { discovery.start() }
         .onFailure { state = state.copy(message = "LAN discovery unavailable: ${it.message}") }
 
@@ -71,28 +67,41 @@ class StreamdekViewModel(application: Application) : AndroidViewModel(applicatio
         state = state.copy(address = server.address, message = null)
     }
 
-    fun pair() {
-        if (state.code.length != 6) {
-            state = state.copy(message = "Enter the six-digit code from the desktop log")
-            return
-        }
+    fun requestAccess() {
         state = state.copy(pairing = true, message = null)
         runCatching {
-            client.pair(state.address, state.code) { result ->
+            client.requestAccess(state.address, "${Build.MANUFACTURER} ${Build.MODEL}".trim()) { result ->
                 onMain {
-                    result.onSuccess {
-                        token = it.token
-                        preferences.edit().putString("address", it.address).putString("token", it.token).apply()
-                        reconnect = true
-                        state = state.copy(address = it.address, code = "", pairing = false, paired = true)
-                        connectSaved()
+                    result.onSuccess { request ->
+                        state = state.copy(address = request.address, message = "Waiting for approval on the desktop…")
+                        pollAccess(request)
                     }.onFailure {
-                        state = state.copy(pairing = false, message = it.message ?: "Pairing failed")
+                        state = state.copy(pairing = false, message = it.message ?: "Access request failed")
                     }
                 }
             }
         }.onFailure {
             state = state.copy(pairing = false, message = it.message ?: "Invalid server address")
+        }
+    }
+
+    private fun pollAccess(request: StreamdekClient.AccessRequest) {
+        client.accessStatus(request) { result ->
+            onMain {
+                result.onSuccess { pairing ->
+                    if (pairing == null) {
+                        if (state.pairing) main.postDelayed({ pollAccess(request) }, 1_000)
+                    } else {
+                        token = pairing.token
+                        preferences.edit().putString("address", pairing.address).putString("token", pairing.token).apply()
+                        reconnect = true
+                        state = state.copy(address = pairing.address, pairing = false, paired = true, message = null)
+                        connectSaved()
+                    }
+                }.onFailure {
+                    state = state.copy(pairing = false, message = it.message ?: "Approval failed")
+                }
+            }
         }
     }
 
@@ -102,6 +111,8 @@ class StreamdekViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun disconnect() {
         reconnect = false
+        state = state.copy(pairing = false)
+        main.removeCallbacksAndMessages(null)
         token = null
         preferences.edit().clear().apply()
         client.close()

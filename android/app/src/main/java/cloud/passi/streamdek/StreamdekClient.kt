@@ -19,14 +19,15 @@ class StreamdekClient(private val http: OkHttpClient = OkHttpClient()) {
     }
 
     data class Pairing(val address: String, val token: String)
+    data class AccessRequest(val address: String, val requestId: String)
 
     private var socket: WebSocket? = null
 
-    fun pair(address: String, code: String, result: (Result<Pairing>) -> Unit): Call {
+    fun requestAccess(address: String, deviceName: String, result: (Result<AccessRequest>) -> Unit): Call {
         val normalized = normalize(address)
-        val body = JSONObject().put("code", code).toString()
+        val body = JSONObject().put("deviceName", deviceName).toString()
             .toRequestBody("application/json".toMediaType())
-        val request = Request.Builder().url("http://$normalized/v1/pair").post(body).build()
+        val request = Request.Builder().url("http://$normalized/v1/access-requests").post(body).build()
         return http.newCall(request).also { call ->
             call.enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) = result(Result.failure(e))
@@ -35,14 +36,39 @@ class StreamdekClient(private val http: OkHttpClient = OkHttpClient()) {
                     response.use {
                         val raw = it.body.string()
                         if (!it.isSuccessful) {
-                            result(Result.failure(IOException("Pairing failed (${it.code})")))
+                            result(Result.failure(IOException("Access request failed (${it.code})")))
                             return
                         }
-                        runCatching { Pairing(normalized, Protocol.pairingToken(raw)) }.let(result)
+                        runCatching { AccessRequest(normalized, JSONObject(raw).getString("requestId")) }.let(result)
                     }
                 }
             })
         }
+    }
+
+    fun accessStatus(request: AccessRequest, result: (Result<Pairing?>) -> Unit): Call {
+        val call = http.newCall(
+            Request.Builder().url("http://${request.address}/v1/access-requests/${request.requestId}").build(),
+        )
+        call.enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) = result(Result.failure(e))
+
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    val raw = it.body.string()
+                    if (it.code == 202) {
+                        result(Result.success(null))
+                        return
+                    }
+                    if (!it.isSuccessful) {
+                        result(Result.failure(IOException("Approval failed (${it.code})")))
+                        return
+                    }
+                    runCatching { Pairing(request.address, Protocol.pairingToken(raw)) }.let(result)
+                }
+            }
+        })
+        return call
     }
 
     fun connect(address: String, token: String, listener: Listener) {

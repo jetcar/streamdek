@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,7 +63,7 @@ fun StreamdekApp(viewModel: StreamdekViewModel) {
         ) {
             Header(state.connection, state.paired, viewModel::disconnect)
             if (!state.paired) {
-                PairingPanel(state, viewModel::updateAddress, viewModel::updateCode, viewModel::selectServer, viewModel::pair)
+                PairingPanel(state, viewModel::updateAddress, viewModel::selectServer, viewModel::requestAccess)
             } else if (state.cards.isEmpty()) {
                 EmptyState(state.connection)
             } else {
@@ -105,9 +103,8 @@ private fun Header(connection: ConnectionState, paired: Boolean, disconnect: () 
 private fun PairingPanel(
     state: UiState,
     address: (String) -> Unit,
-    code: (String) -> Unit,
     select: (DiscoveredServer) -> Unit,
-    pair: () -> Unit,
+    requestAccess: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Connect to the desktop service on the same Wi‑Fi network.", color = Muted)
@@ -131,22 +128,14 @@ private fun PairingPanel(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        OutlinedTextField(
-            value = state.code,
-            onValueChange = code,
-            label = { Text("Pairing code") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
         Button(
-            onClick = pair,
+            onClick = requestAccess,
             enabled = !state.pairing,
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF48A8FF)),
             modifier = Modifier.fillMaxWidth().height(52.dp),
         ) {
             if (state.pairing) CircularProgressIndicator(Modifier.size(22.dp), color = Page, strokeWidth = 2.dp)
-            else Text("PAIR", color = Page, fontWeight = FontWeight.Bold)
+            else Text("REQUEST ACCESS", color = Page, fontWeight = FontWeight.Bold)
         }
     }
 }
