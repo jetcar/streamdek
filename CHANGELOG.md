@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.1 - 2026-10-29
+
+### Changed
+
+- Web displays now request access and are approved on the desktop instead of requiring a six-digit code.
+- New-display requests show a native desktop notification and open a local-only approval page.
+
 ## 1.8.0 - 2026-10-29
 
 ### Added

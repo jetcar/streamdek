@@ -194,6 +194,10 @@ export class WifiServer {
       return;
     }
     if (request.method === 'POST' && url.pathname === '/v1/access-requests') {
+      if (!this.allowPairing(request)) {
+        json(response, 429, { error: 'Too many access requests' });
+        return;
+      }
       try {
         const body = await readBody(request) as { deviceName?: unknown };
         if (typeof body.deviceName !== 'string' || body.deviceName.trim().length === 0) {
