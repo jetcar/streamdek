@@ -28,6 +28,7 @@ async function fixture(
   onOpen: (value: DeckCard) => void = () => undefined,
   onRequest: (deviceName: string, approvalUrl: string) => void = () => undefined,
   trustLoopback = false,
+  onApprove: (value: DeckCard) => void = () => undefined,
 ): Promise<WifiServer> {
   const directory = mkdtempSync(join(tmpdir(), 'streamdek-wifi-'));
   directories.push(directory);
@@ -40,6 +41,7 @@ async function fixture(
     advertise: false,
     log: () => undefined,
     openCard: onOpen,
+    approveCard: onApprove,
     requestApproval: onRequest,
     trustLoopback,
   });
@@ -182,6 +184,20 @@ describe('WifiServer', () => {
       timestamp: 123,
       source: 'thread',
     }]);
+    socket.close();
+  });
+
+  it('allows an authenticated browser to approve only an asking card', async () => {
+    let approved: DeckCard | undefined;
+    const server = await fixture(() => undefined, () => undefined, false, (value) => { approved = value; });
+    const asking = { ...card, status: 'asking' as const };
+    server.publish([asking]);
+    const socket = new WebSocket(`ws://127.0.0.1:${server.port}/v1/cards?token=test-token`);
+    await nextMessage(socket);
+
+    socket.send(JSON.stringify({ type: 'approve', cardId: asking.id }));
+    expect(await nextMessage(socket)).toEqual({ type: 'approved', cardId: asking.id });
+    expect(approved).toEqual(asking);
     socket.close();
   });
 });

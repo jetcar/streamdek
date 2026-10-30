@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { claudeDirectory, claudeLauncher, codexDirectory, deviceApprovalCommand, notificationCommand, opener, runtimeDirectory } from '../src/platform.js';
+import { approvalLauncher, claudeDirectory, claudeLauncher, codexDirectory, deviceApprovalCommand, notificationCommand, opener, runtimeDirectory } from '../src/platform.js';
 
 describe('runtimeDirectory', () => {
   it('uses the native state location on every supported platform', () => {
@@ -94,5 +94,22 @@ describe('claudeLauncher', () => {
 
   it('rejects unsafe session IDs', () => {
     expect(() => claudeLauncher('session; shutdown', 'linux')).toThrow('Invalid Claude session ID');
+  });
+});
+
+describe('approvalLauncher', () => {
+  it('resumes Codex and Claude sessions with an approval response', () => {
+    expect(approvalLauncher({ kind: 'url', value: 'codex://threads/thread-123' }, 'win32')).toMatchObject({
+      command: 'codex.exe',
+      args: ['exec', 'resume', 'thread-123', expect.stringContaining('Approved')],
+    });
+    expect(approvalLauncher({ kind: 'claude-session', sessionId: 'claude-123' }, 'linux')).toMatchObject({
+      command: 'claude',
+      args: ['--resume', 'claude-123', '--print', expect.stringContaining('Approved')],
+    });
+  });
+
+  it('rejects targets that cannot receive input', () => {
+    expect(() => approvalLauncher({ kind: 'url', value: 'https://example.com' }, 'linux')).toThrow('cannot receive approval');
   });
 });

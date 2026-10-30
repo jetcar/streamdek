@@ -23,6 +23,7 @@ export interface WifiCard {
 interface WifiServerOptions {
   tokenPath: string;
   openCard: (card: DeckCard) => void;
+  approveCard?: (card: DeckCard) => void;
   log: Log;
   host?: string;
   port?: number;
@@ -330,11 +331,17 @@ export class WifiServer {
   private handleMessage(client: WebSocket, raw: string): void {
     try {
       const message = JSON.parse(raw) as { type?: unknown; cardId?: unknown };
-      if (message.type !== 'open' || typeof message.cardId !== 'string') throw new Error('Invalid message');
+      if ((message.type !== 'open' && message.type !== 'approve') || typeof message.cardId !== 'string') throw new Error('Invalid message');
       const card = this.cards.find((item) => item.id === message.cardId);
       if (!card) throw new Error('Card is no longer available');
-      this.options.openCard(card);
-      client.send(JSON.stringify({ type: 'opened', cardId: card.id }));
+      if (message.type === 'approve') {
+        if (card.status !== 'asking' || !this.options.approveCard) throw new Error('Card is not asking for approval');
+        this.options.approveCard(card);
+        client.send(JSON.stringify({ type: 'approved', cardId: card.id }));
+      } else {
+        this.options.openCard(card);
+        client.send(JSON.stringify({ type: 'opened', cardId: card.id }));
+      }
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'Invalid message';
       client.send(JSON.stringify({ type: 'error', error: detail }));

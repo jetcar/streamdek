@@ -134,6 +134,44 @@ export function claudeLauncher(
   throw new Error(`Unsupported platform: ${platform}`);
 }
 
+const APPROVAL_RESPONSE = 'Approved. Continue with the requested action. Do not ask for confirmation again unless the action becomes irreversible or destructive.';
+
+export function approvalLauncher(
+  target: DeckTarget,
+  platform = process.platform,
+): { command: string; args: string[] } {
+  if (target.kind === 'claude-session') {
+    return {
+      command: platform === 'win32' ? 'claude.exe' : 'claude',
+      args: ['--resume', target.sessionId, '--print', APPROVAL_RESPONSE],
+    };
+  }
+  const url = new URL(target.value);
+  if (url.protocol !== 'codex:' || url.hostname !== 'threads') throw new Error('Target cannot receive approval');
+  const sessionId = decodeURIComponent(url.pathname.replace(/^\//, ''));
+  if (!/^[A-Za-z0-9._-]+$/.test(sessionId)) throw new Error('Invalid Codex session ID');
+  return {
+    command: platform === 'win32' ? 'codex.exe' : 'codex',
+    args: ['exec', 'resume', sessionId, APPROVAL_RESPONSE],
+  };
+}
+
+export function approveDeckTarget(target: DeckTarget, log: Log): void {
+  try {
+    const selected = approvalLauncher(target);
+    const child = spawn(selected.command, selected.args, {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+    child.on('error', (error) => log('Could not send automatic approval', error));
+    child.unref();
+    log('Sent automatic approval');
+  } catch (error) {
+    log('Could not send automatic approval', error);
+  }
+}
+
 export function openDeckTarget(target: DeckTarget, log: Log): void {
   if (target.kind === 'url') {
     openExternal(target.value, log);
