@@ -1,10 +1,17 @@
 # Changelog
 
+## 1.9.2 - 2026-10-30
+
+### Fixed
+
+- Web displays opened on the Streamdek PC connect automatically without an approval prompt.
+- Remote-device requests use a native Windows dialog with a browser fallback.
+
 ## 1.9.1 - 2026-10-30
 
 ### Fixed
 
-- Windows opens device-approval requests in the default browser instead of starting a background Explorer process.
+- Windows shows a native Yes/No dialog for device-approval requests instead of relying on a background browser launch.
 
 ## 1.9.0 - 2026-10-29
 

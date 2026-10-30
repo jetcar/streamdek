@@ -43,7 +43,7 @@ export function claudeDirectory(
 
 export function opener(platform = process.platform): { command: string; args: (url: string) => string[] } {
   const supported = platform as SupportedPlatform;
-  if (supported === 'win32') return { command: 'rundll32.exe', args: (url) => ['url.dll,FileProtocolHandler', url] };
+  if (supported === 'win32') return { command: 'cmd.exe', args: (url) => ['/d', '/s', '/c', 'start', '""', url] };
   if (supported === 'darwin') return { command: 'open', args: (url) => [url] };
   if (supported === 'linux') return { command: 'xdg-open', args: (url) => [url] };
   throw new Error(`Unsupported platform: ${platform}`);
@@ -81,10 +81,30 @@ export function notificationCommand(
   throw new Error(`Unsupported platform: ${platform}`);
 }
 
+export function deviceApprovalCommand(
+  deviceName: string,
+  approvalUrl: string,
+  platform = process.platform,
+): { command: string; args: string[] } | undefined {
+  if (platform !== 'win32') return undefined;
+  const id = new URL(approvalUrl).searchParams.get('id');
+  if (!id || !/^[A-Za-z0-9_-]+$/.test(id)) throw new Error('Invalid approval URL');
+  const message = Buffer.from(`${deviceName} wants to view Streamdek sessions and open tasks on this computer.`, 'utf8').toString('base64');
+  const approveUrl = Buffer.from(`${new URL(approvalUrl).origin}/v1/access-requests/${id}/approve`, 'utf8').toString('base64');
+  const script = `Add-Type -AssemblyName System.Windows.Forms;$m=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${message}'));$u=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${approveUrl}'));$r=[Windows.Forms.MessageBox]::Show($m,'Streamdek device approval',[Windows.Forms.MessageBoxButtons]::YesNo,[Windows.Forms.MessageBoxIcon]::Question);if($r -eq [Windows.Forms.DialogResult]::Yes){Invoke-WebRequest -UseBasicParsing -Method Post -Uri $u|Out-Null}`;
+  return { command: 'powershell.exe', args: ['-NoProfile', '-NonInteractive', '-Command', script] };
+}
+
 export function requestDeviceApproval(deviceName: string, approvalUrl: string, log: Log): void {
   try {
-    const selected = notificationCommand(`${deviceName} is requesting display access. Approve it on this computer.`);
-    const child = spawn(selected.command, selected.args, { detached: true, stdio: 'ignore', windowsHide: true });
+    const approval = deviceApprovalCommand(deviceName, approvalUrl);
+    const selected = approval
+      ?? notificationCommand(`${deviceName} is requesting display access. Approve it on this computer.`);
+    const child = spawn(selected.command, selected.args, {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: approval === undefined,
+    });
     child.on('error', (error) => log('Could not show device approval notification', error));
     child.unref();
   } catch (error) {

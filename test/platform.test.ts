@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { claudeDirectory, claudeLauncher, codexDirectory, notificationCommand, opener, runtimeDirectory } from '../src/platform.js';
+import { claudeDirectory, claudeLauncher, codexDirectory, deviceApprovalCommand, notificationCommand, opener, runtimeDirectory } from '../src/platform.js';
 
 describe('runtimeDirectory', () => {
   it('uses the native state location on every supported platform', () => {
@@ -30,16 +30,16 @@ describe('claudeDirectory', () => {
 
 describe('opener', () => {
   it.each([
-    ['win32', 'rundll32.exe'],
+    ['win32', 'cmd.exe'],
     ['darwin', 'open'],
     ['linux', 'xdg-open'],
   ])('uses the native URL opener on %s', (platform, command) => {
     expect(opener(platform).command).toBe(command);
   });
 
-  it('uses the Windows URL protocol handler rather than opening Explorer', () => {
+  it('uses the Windows shell URL handler rather than opening Explorer', () => {
     expect(opener('win32').args('http://127.0.0.1:8910/approve?id=test')).toEqual([
-      'url.dll,FileProtocolHandler',
+      '/d', '/s', '/c', 'start', '""',
       'http://127.0.0.1:8910/approve?id=test',
     ]);
   });
@@ -62,6 +62,22 @@ describe('notificationCommand', () => {
     const selected = notificationCommand("Tablet'; exit", 'win32');
     expect(selected.command).toBe('powershell.exe');
     expect(selected.args.join(' ')).not.toContain("Tablet'; exit");
+  });
+});
+
+describe('deviceApprovalCommand', () => {
+  it('shows a Windows confirmation dialog and posts approval without raw user input in the script', () => {
+    const selected = deviceApprovalCommand("Office'; exit", 'http://127.0.0.1:8910/approve?id=request_1', 'win32');
+    expect(selected?.command).toBe('powershell.exe');
+    expect(selected?.args.join(' ')).toContain('MessageBox');
+    expect(selected?.args).not.toContain('Hidden');
+    expect(selected?.args.join(' ')).not.toContain("Office'; exit");
+    expect(selected?.args.join(' ')).not.toContain('request_1');
+  });
+
+  it('keeps the browser approval flow on macOS and Linux', () => {
+    expect(deviceApprovalCommand('Tablet', 'http://127.0.0.1:8910/approve?id=request_1', 'darwin')).toBeUndefined();
+    expect(deviceApprovalCommand('Tablet', 'http://127.0.0.1:8910/approve?id=request_1', 'linux')).toBeUndefined();
   });
 });
 

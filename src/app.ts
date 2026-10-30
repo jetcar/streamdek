@@ -52,7 +52,10 @@ const wifi = new WifiServer({
   port: wifiPort,
   log,
   openCard: (card) => openDeckTarget(card.target, log),
-  requestApproval: (deviceName, approvalUrl) => requestDeviceApproval(deviceName, approvalUrl, log),
+  requestApproval: (deviceName, approvalUrl) => {
+    log(`Device approval requested by ${deviceName}`);
+    requestDeviceApproval(deviceName, approvalUrl, log);
+  },
 });
 let stopping = false;
 let lastError = '';

@@ -27,6 +27,7 @@ afterEach(async () => {
 async function fixture(
   onOpen: (value: DeckCard) => void = () => undefined,
   onRequest: (deviceName: string, approvalUrl: string) => void = () => undefined,
+  trustLoopback = false,
 ): Promise<WifiServer> {
   const directory = mkdtempSync(join(tmpdir(), 'streamdek-wifi-'));
   directories.push(directory);
@@ -40,6 +41,7 @@ async function fixture(
     log: () => undefined,
     openCard: onOpen,
     requestApproval: onRequest,
+    trustLoopback,
   });
   servers.push(server);
   await server.start();
@@ -78,6 +80,20 @@ describe('WifiServer', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ token: 'test-token', protocolVersion: 1 });
+  });
+
+  it('automatically approves a display opened on the same computer', async () => {
+    const server = await fixture(() => undefined, () => undefined, true);
+    const requested = await fetch(`http://127.0.0.1:${server.port}/v1/access-requests`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ deviceName: 'Local browser' }),
+    });
+    const request = await requested.json() as { requestId: string };
+    const granted = await fetch(`http://127.0.0.1:${server.port}/v1/access-requests/${request.requestId}`);
+
+    expect(granted.status).toBe(200);
+    expect(await granted.json()).toEqual({ status: 'approved', token: 'test-token', protocolVersion: 1 });
   });
 
   it('grants browser access after approval on the desktop', async () => {

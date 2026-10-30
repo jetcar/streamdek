@@ -30,6 +30,7 @@ interface WifiServerOptions {
   token?: string;
   advertise?: boolean;
   requestApproval?: (deviceName: string, approvalUrl: string) => void;
+  trustLoopback?: boolean;
 }
 
 interface AccessRequest {
@@ -207,9 +208,10 @@ export class WifiServer {
         this.pruneAccessRequests();
         const id = randomBytes(16).toString('base64url');
         const deviceName = body.deviceName.trim().slice(0, 80);
-        this.accessRequests.set(id, { deviceName, expiresAt: Date.now() + 5 * 60_000, approved: false });
+        const approved = this.options.trustLoopback !== false && this.isLoopback(request);
+        this.accessRequests.set(id, { deviceName, expiresAt: Date.now() + 5 * 60_000, approved });
         const approvalUrl = `http://127.0.0.1:${this.port}/approve?id=${encodeURIComponent(id)}`;
-        this.options.requestApproval?.(deviceName, approvalUrl);
+        if (!approved) this.options.requestApproval?.(deviceName, approvalUrl);
         json(response, 202, { requestId: id, expiresInSeconds: 300 });
       } catch {
         json(response, 400, { error: 'Invalid JSON body' });
