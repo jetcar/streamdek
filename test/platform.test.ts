@@ -30,11 +30,18 @@ describe('claudeDirectory', () => {
 
 describe('opener', () => {
   it.each([
-    ['win32', 'explorer.exe'],
+    ['win32', 'rundll32.exe'],
     ['darwin', 'open'],
     ['linux', 'xdg-open'],
   ])('uses the native URL opener on %s', (platform, command) => {
     expect(opener(platform).command).toBe(command);
+  });
+
+  it('uses the Windows URL protocol handler rather than opening Explorer', () => {
+    expect(opener('win32').args('http://127.0.0.1:8910/approve?id=test')).toEqual([
+      'url.dll,FileProtocolHandler',
+      'http://127.0.0.1:8910/approve?id=test',
+    ]);
   });
 
   it('rejects unsupported platforms', () => {

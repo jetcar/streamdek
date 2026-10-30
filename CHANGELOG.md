@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.1 - 2026-10-30
+
+### Fixed
+
+- Windows opens device-approval requests in the default browser instead of starting a background Explorer process.
+
 ## 1.9.0 - 2026-10-29
 
 ### Changed

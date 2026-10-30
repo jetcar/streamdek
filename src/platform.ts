@@ -43,7 +43,7 @@ export function claudeDirectory(
 
 export function opener(platform = process.platform): { command: string; args: (url: string) => string[] } {
   const supported = platform as SupportedPlatform;
-  if (supported === 'win32') return { command: 'explorer.exe', args: (url) => [url] };
+  if (supported === 'win32') return { command: 'rundll32.exe', args: (url) => ['url.dll,FileProtocolHandler', url] };
   if (supported === 'darwin') return { command: 'open', args: (url) => [url] };
   if (supported === 'linux') return { command: 'xdg-open', args: (url) => [url] };
   throw new Error(`Unsupported platform: ${platform}`);
