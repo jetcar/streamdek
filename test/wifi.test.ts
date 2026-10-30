@@ -69,6 +69,10 @@ describe('WifiServer', () => {
     expect(body).toContain('<title>Streamdek</title>');
     expect(body).toContain('viewport-fit=cover');
     expect(body).toContain('Request access');
+    expect(body).toContain('streamdek-auto-approve');
+    expect(body).toContain("type: 'approve'");
+    expect(body).toContain('streamdek-auto-approve');
+    expect(body).toContain("type: 'approve'");
     expect(body).not.toContain('Enter the six-digit code');
   });
 

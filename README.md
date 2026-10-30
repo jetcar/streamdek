@@ -51,6 +51,8 @@ Wi-Fi transport is authenticated but not encrypted. Do not expose port `8910` to
 
 On any phone, tablet, computer, or second screen on the same trusted network, open `http://DESKTOP-IP:8910`, such as `http://192.168.1.20:8910`. Name the screen and request access. Streamdek shows a desktop notification and opens a local approval page on the computer; approve it there once. The browser stores the granted token locally, reconnects automatically, shows the same live cards and colors, and opens a task on the desktop when tapped.
 
+Press `AUTO` on a Codex or Claude session card to let that browser automatically answer approval requests for that session. The setting is stored only in that browser and applies to every request in the selected session, including tool and permission prompts. Enable it only for trusted, reversible work.
+
 No app installation is needed. Keep the Streamdek desktop service running, and allow port `8910` through the desktop firewall on private networks.
 
 ## Install

@@ -22,12 +22,15 @@
     form button { border: 0; padding: 0 1.1rem; background: #48a8ff; color: #06111c; font-weight: 800; cursor: pointer; }
     #pair-error { min-height: 1.25rem; margin-top: .8rem; color: #ff6a61; }
     #cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr)); gap: clamp(.6rem, 1.5vw, 1rem); }
-    .card { --accent: #929aa5; position: relative; min-height: clamp(8rem, 17vw, 11rem); overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent) 55%, #111); border-radius: 1rem; padding: 1rem; background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 22%, #101318), #101318 70%); color: #fff; text-align: left; cursor: pointer; box-shadow: inset 0 .2rem 0 var(--accent), 0 .8rem 2rem #0004; transition: transform .12s ease, filter .12s ease; }
+    .card-wrap { position: relative; min-width: 0; }
+    .card { --accent: #929aa5; position: relative; width: 100%; min-height: clamp(8rem, 17vw, 11rem); overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent) 55%, #111); border-radius: 1rem; padding: 1rem; background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 22%, #101318), #101318 70%); color: #fff; text-align: left; cursor: pointer; box-shadow: inset 0 .2rem 0 var(--accent), 0 .8rem 2rem #0004; transition: transform .12s ease, filter .12s ease; }
     .card:active { transform: scale(.98); } .card:hover { filter: brightness(1.12); }
     .status { color: var(--accent); font-size: .7rem; font-weight: 900; letter-spacing: .12em; }
     .title { display: block; margin-top: .55rem; font-size: clamp(1rem, 2.6vw, 1.25rem); font-weight: 800; overflow-wrap: anywhere; }
     .subtitle { display: -webkit-box; margin-top: .35rem; color: #d5d9de; line-height: 1.3; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
     .source { position: absolute; right: .8rem; bottom: .65rem; color: #ffffff8c; font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .auto { position: absolute; z-index: 2; right: .65rem; top: .6rem; border: 1px solid #ffffff35; border-radius: .45rem; padding: .3rem .45rem; background: #080a0dcc; color: #aeb5bf; font: 800 .58rem/1 system-ui; letter-spacing: .08em; cursor: pointer; }
+    .auto.enabled { border-color: #46d68c; color: #46d68c; box-shadow: 0 0 .8rem #46d68c55; }
     .asking { --accent: #ff4d83; } .thinking { --accent: #48a8ff; } .error { --accent: #ff5147; }
     .scheduled { --accent: #b981ff; } .update { --accent: #ffb52e; } .done { --accent: #46d68c; } .idle { --accent: #929aa5; }
     #empty { display: none; place-items: center; min-height: 55vh; color: #929aa5; text-align: center; }
@@ -45,6 +48,10 @@
   <script>
     (() => {
       const storageKey = 'streamdek-token';
+      const autoKey = 'streamdek-auto-approve';
+      const storedAutoIds = (() => { try { const value = JSON.parse(localStorage.getItem(autoKey) || '[]'); return Array.isArray(value) ? value : []; } catch { return []; } })();
+      const autoIds = new Set(storedAutoIds);
+      const approvedAsking = new Set();
       const pair = document.querySelector('#pair'); const form = document.querySelector('#pair-form'); const deviceName = document.querySelector('#device-name');
       const error = document.querySelector('#pair-error'); const cards = document.querySelector('#cards'); const empty = document.querySelector('#empty'); const connection = document.querySelector('#connection');
       let socket; let retry;
@@ -53,15 +60,34 @@
       function render(items) {
         cards.replaceChildren();
         for (const item of items) {
+          const wrap = document.createElement('div'); wrap.className = 'card-wrap';
           const button = document.createElement('button'); button.className = `card ${item.status}`; button.type = 'button';
           const status = document.createElement('span'); status.className = 'status'; status.textContent = item.status === 'thinking' ? 'WORKING' : item.status.toUpperCase();
           const title = document.createElement('span'); title.className = 'title'; title.textContent = item.title; button.append(status, title);
           if (item.subtitle) { const subtitle = document.createElement('span'); subtitle.className = 'subtitle'; subtitle.textContent = item.subtitle; button.append(subtitle); }
           const source = document.createElement('span'); source.className = 'source'; source.textContent = item.source; button.append(source);
           button.addEventListener('click', () => { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'open', cardId: item.id })); });
-          cards.append(button);
+          wrap.append(button);
+          if (item.source === 'thread' || item.source === 'claude') {
+            const auto = document.createElement('button'); auto.type = 'button'; auto.className = `auto${autoIds.has(item.id) ? ' enabled' : ''}`; auto.textContent = 'AUTO'; auto.title = 'Automatically approve this session';
+            auto.addEventListener('click', () => {
+              if (autoIds.has(item.id)) autoIds.delete(item.id); else autoIds.add(item.id);
+              localStorage.setItem(autoKey, JSON.stringify([...autoIds]));
+              auto.classList.toggle('enabled', autoIds.has(item.id));
+              if (autoIds.has(item.id) && item.status === 'asking') approve(item.id);
+            });
+            wrap.append(auto);
+          }
+          cards.append(wrap);
+          if (item.status !== 'asking') approvedAsking.delete(item.id);
+          if (item.status === 'asking' && autoIds.has(item.id)) approve(item.id);
         }
         cards.hidden = items.length === 0; empty.style.display = items.length === 0 ? 'grid' : 'none';
+      }
+      function approve(cardId) {
+        if (approvedAsking.has(cardId) || socket?.readyState !== WebSocket.OPEN) return;
+        approvedAsking.add(cardId);
+        socket.send(JSON.stringify({ type: 'approve', cardId }));
       }
       function connect() {
         const token = localStorage.getItem(storageKey); if (!token) return showPair();

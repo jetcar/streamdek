@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10.0 - 2026-10-30
+
+### Added
+
+- Per-session `AUTO` controls in the web display automatically answer approval requests for selected Codex and Claude sessions.
+- Authenticated WebSocket approval actions are accepted only while a card is in the asking state.
+
 ## 1.9.2 - 2026-10-30
 
 ### Fixed
