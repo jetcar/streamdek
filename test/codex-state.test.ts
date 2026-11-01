@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { agentMessageDetails, codexThreadTitle } from '../src/codex-state.js';
+import { agentMessageDetails, codexThreadSubtitle, codexThreadTitle } from '../src/codex-state.js';
 
 describe('codexThreadTitle', () => {
   it('prefers the working folder over the saved session name and first prompt', () => {
@@ -27,6 +27,17 @@ describe('codexThreadTitle', () => {
       title: 'Fallback task title',
       preview: 'First prompt',
     })).toBe('Fallback task title');
+  });
+});
+
+describe('codexThreadSubtitle', () => {
+  it('uses the saved session label and falls back to the first prompt', () => {
+    expect(codexThreadSubtitle({
+      name: 'Show agent sessions on Stream Deck',
+      title: 'i have stream deck connected',
+      preview: 'i have stream deck connected',
+    })).toBe('Show agent sessions on Stream Deck');
+    expect(codexThreadSubtitle({ name: '', title: '', preview: 'First prompt' })).toBe('First prompt');
   });
 });
 

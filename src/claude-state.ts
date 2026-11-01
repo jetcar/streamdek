@@ -65,6 +65,7 @@ export function parseClaudeTranscript(content: string, fallbackId: string, updat
   let turnStatus: string | undefined;
   let hasQuestions = false;
   let subtitle: string | undefined;
+  let firstPrompt: string | undefined;
   let sawConversation = false;
 
   for (const line of content.split(/\r?\n/)) {
@@ -94,6 +95,7 @@ export function parseClaudeTranscript(content: string, fallbackId: string, updat
     sawConversation = true;
 
     if (entry.type === 'user') {
+      firstPrompt ??= responseText(entry);
       turnStatus = 'inProgress';
       hasQuestions = false;
       continue;
@@ -124,7 +126,7 @@ export function parseClaudeTranscript(content: string, fallbackId: string, updat
   return {
     id,
     title: cleanTitle(cwd, sessionName, routineName, id),
-    subtitle,
+    subtitle: routineName ? subtitle : sessionName?.trim().slice(0, 80) || firstPrompt,
     updatedAt,
     turnStatus,
     hasQuestions,

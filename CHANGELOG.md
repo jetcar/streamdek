@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10.1 - 2026-11-01
+
+### Fixed
+
+- Normal Codex and Claude session cards show the saved session label or first prompt on line two instead of the latest response.
+- Claude scheduled-task cards continue to show their latest response.
+
 ## 1.10.0 - 2026-10-30
 
 ### Added

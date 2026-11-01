@@ -17,7 +17,7 @@ describe('parseClaudeTranscript', () => {
     expect(record).toMatchObject({
       id: 'session-1',
       title: 'app',
-      subtitle: 'Done',
+      subtitle: 'Fix the login bug',
       updatedAt: UPDATED_AT,
       turnStatus: 'completed',
       provider: 'claude',
@@ -31,7 +31,7 @@ describe('parseClaudeTranscript', () => {
       line({ type: 'user', sessionId: 'session-4', message: { content: 'Build it' } }),
     ].join('\n'), 'fallback', UPDATED_AT);
 
-    expect(record?.title).toBe('Release dashboard');
+    expect(record).toMatchObject({ title: 'Release dashboard', subtitle: 'Release dashboard' });
   });
 
   it('uses the session ID when folder and saved names are missing', () => {
@@ -41,6 +41,7 @@ describe('parseClaudeTranscript', () => {
       UPDATED_AT,
     );
     expect(record?.title).toBe('session-5');
+    expect(record?.subtitle).toBe('Build it');
   });
 
   it('identifies scheduled task runs by routine name', () => {
@@ -50,11 +51,13 @@ describe('parseClaudeTranscript', () => {
         content: '<scheduled-task name="book-writer" file="/home/user/.claude/scheduled-tasks/book-writer/SKILL.md">',
       }),
       line({ type: 'user', sessionId: 'routine-run-1', cwd: '/repo/book', message: { content: 'Run it' } }),
+      line({ type: 'assistant', message: { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Routine complete' }] } }),
     ].join('\n'), 'fallback', UPDATED_AT);
 
     expect(record).toMatchObject({
       id: 'routine-run-1',
       title: 'book-writer',
+      subtitle: 'Routine complete',
       routineName: 'book-writer',
       provider: 'claude',
     });

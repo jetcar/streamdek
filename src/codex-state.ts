@@ -72,6 +72,14 @@ export function codexThreadTitle(row: {
     ?? 'Untitled task';
 }
 
+export function codexThreadSubtitle(row: {
+  name?: unknown;
+  title?: unknown;
+  preview?: unknown;
+}): string | undefined {
+  return nonEmpty(row.name) ?? nonEmpty(row.title) ?? nonEmpty(row.preview);
+}
+
 function latestTurns(path: string): Map<string, { status: string; turnId: string }> {
   return withDatabase(path, (db) => {
     const rows = db.prepare(`
@@ -132,7 +140,7 @@ function readThreads(paths: Paths): ThreadRecord[] {
       return {
         id,
         title: codexThreadTitle(row),
-        subtitle: detail?.response,
+        subtitle: codexThreadSubtitle(row),
         updatedAt: secondsToMs(row.updated_at),
         turnStatus: turn?.status,
         hasQuestions: detail?.hasQuestions ?? false,
