@@ -25,10 +25,17 @@ $action = New-ScheduledTaskAction `
     -Execute $powerShellPath `
     -Argument $watchArguments `
     -WorkingDirectory $WorkingDirectory
-$trigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
+$logonTrigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
+$recoveryTrigger = New-ScheduledTaskTrigger `
+    -Once `
+    -At (Get-Date).AddMinutes(1) `
+    -RepetitionInterval (New-TimeSpan -Minutes 1) `
+    -RepetitionDuration (New-TimeSpan -Days 3650)
 $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Limited
 $settings = New-ScheduledTaskSettingsSet `
     -StartWhenAvailable `
+    -AllowStartIfOnBatteries `
+    -DontStopIfGoingOnBatteries `
     -RestartCount 999 `
     -RestartInterval (New-TimeSpan -Minutes 1) `
     -MultipleInstances IgnoreNew `
@@ -38,7 +45,7 @@ Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
 Register-ScheduledTask `
     -TaskName $taskName `
     -Action $action `
-    -Trigger $trigger `
+    -Trigger @($logonTrigger, $recoveryTrigger) `
     -Principal $principal `
     -Settings $settings `
     -Description 'Streamdek agent status display with automatic restart' `

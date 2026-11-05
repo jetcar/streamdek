@@ -13,6 +13,11 @@ describe('Windows watchdog packaging', () => {
     expect(watchdog).toContain('& $NodePath $AppPath');
     expect(registration).toContain("$taskName = 'Streamdek'");
     expect(registration).toContain("Join-Path $PSScriptRoot 'watch-windows.ps1'");
+    expect(registration).toContain('$recoveryTrigger = New-ScheduledTaskTrigger');
+    expect(registration).toContain('-RepetitionInterval (New-TimeSpan -Minutes 1)');
+    expect(registration).toContain('-AllowStartIfOnBatteries');
+    expect(registration).toContain('-DontStopIfGoingOnBatteries');
+    expect(registration).toContain('-Trigger @($logonTrigger, $recoveryTrigger)');
     expect(registration).toContain('Start-ScheduledTask -TaskName $taskName');
   });
 
@@ -32,4 +37,3 @@ describe('Windows watchdog packaging', () => {
     expect(uninstall).toContain("Remove-ItemProperty -Path $runKey -Name 'StreamdekCodexStatus'");
   });
 });
-

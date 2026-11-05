@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10.2 - 2026-11-05
+
+### Fixed
+
+- Windows restarts the Streamdek watchdog within one minute if the scheduled task is terminated.
+- The watchdog continues running when the PC switches to battery power.
+
 ## 1.10.1 - 2026-11-01
 
 ### Fixed
