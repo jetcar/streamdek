@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.11.1 - 2026-11-06
+
+### Fixed
+
+- macOS and Linux tray installers build with their platform-specific app layout and native USB dependencies.
+
 ## 1.11.0 - 2026-11-06
 
 ### Added

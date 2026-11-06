@@ -50,6 +50,10 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
 
+      - name: Install Linux native build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libusb-1.0-0-dev libudev-dev
+
       - name: Build Windows desktop app
         if: runner.os == 'Windows'
         run: npx electron-builder --win dir --x64
@@ -95,7 +99,7 @@ jobs:
           version="${RELEASE_VERSION#v}"
           root="release/pkg-root"
           app_dir="$root/Library/Application Support/Streamdek"
-          app_bundle=$(find release/electron -maxdepth 1 -name '*.app' -print -quit)
+          app_bundle=$(find release/electron -type d -name '*.app' -print -quit)
           test -n "$app_bundle"
           mkdir -p "$app_dir" "$root/Library/LaunchAgents" "$root/Applications"
           cp -R "$app_bundle" "$root/Applications/Streamdek.app"

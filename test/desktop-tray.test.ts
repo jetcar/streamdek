@@ -25,6 +25,8 @@ describe('desktop tray application', () => {
     expect(workflow).toContain('electron-builder --win dir');
     expect(workflow).toContain('electron-builder --mac dir');
     expect(workflow).toContain('electron-builder --linux dir');
+    expect(workflow).toContain('libusb-1.0-0-dev libudev-dev');
+    expect(workflow).toContain("find release/electron -type d -name '*.app'");
     expect(macLaunchAgent).toContain('/Applications/Streamdek.app/Contents/MacOS/Streamdek');
     expect(linuxService).toContain('/opt/streamdek/streamdek --background --supervised');
   });
