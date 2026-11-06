@@ -73,7 +73,7 @@ jobs:
           New-Item -ItemType Directory -Path release/payload/scripts -Force | Out-Null
           Copy-Item -Recurse release/electron/win-unpacked/* release/payload/
           Copy-Item README.md, CHANGELOG.md release/payload/
-          Copy-Item scripts/uninstall.ps1, scripts/register-windows-task.ps1, scripts/watch-windows.ps1 release/payload/scripts/
+          Copy-Item scripts/uninstall.ps1, scripts/register-windows-task.ps1 release/payload/scripts/
 
       - name: Build Windows installer
         if: runner.os == 'Windows'

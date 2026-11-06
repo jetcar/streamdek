@@ -4,17 +4,15 @@ import { describe, expect, it } from 'vitest';
 
 const root = process.cwd();
 
-describe('Windows watchdog packaging', () => {
-  it('supervises and relaunches the desktop process', () => {
-    const watchdog = readFileSync(join(root, 'scripts', 'watch-windows.ps1'), 'utf8');
+describe('Windows background task packaging', () => {
+  it('launches the desktop process directly with scheduled recovery', () => {
     const registration = readFileSync(join(root, 'scripts', 'register-windows-task.ps1'), 'utf8');
 
-    expect(watchdog).toContain('while ($true)');
-    expect(watchdog).toContain('Start-Process -FilePath $ExecutablePath');
-    expect(watchdog).toContain('if ($process.ExitCode -eq 0)');
     expect(registration).toContain("$taskName = 'Streamdek'");
-    expect(registration).toContain("Join-Path $PSScriptRoot 'watch-windows.ps1'");
-    expect(registration).toContain('-WindowStyle Hidden');
+    expect(registration).toContain('-Execute $ExecutablePath');
+    expect(registration).toContain('-Argument $ApplicationArguments');
+    expect(registration).not.toContain('powershell.exe');
+    expect(registration).not.toContain('watch-windows.ps1');
     expect(registration).toContain('$recoveryTrigger = New-ScheduledTaskTrigger');
     expect(registration).toContain('-RepetitionInterval (New-TimeSpan -Minutes 1)');
     expect(registration).toContain('-AllowStartIfOnBatteries');
@@ -23,12 +21,12 @@ describe('Windows watchdog packaging', () => {
     expect(registration).toContain('Start-ScheduledTask -TaskName $taskName');
   });
 
-  it('includes the watchdog scripts in the Windows installer', () => {
+  it('includes the background task registration in the Windows installer', () => {
     const workflow = readFileSync(join(root, '.github', 'workflows', 'release.yml'), 'utf8');
     const installer = readFileSync(join(root, 'packaging', 'windows', 'streamdek.iss'), 'utf8');
 
     expect(workflow).toContain('scripts/register-windows-task.ps1');
-    expect(workflow).toContain('scripts/watch-windows.ps1');
+    expect(workflow).not.toContain('scripts/watch-windows.ps1');
     expect(installer).toContain('register-windows-task.ps1');
     expect(installer).toContain('-ExecutablePath ""{app}\\Streamdek.exe""');
   });

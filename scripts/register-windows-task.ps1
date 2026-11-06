@@ -15,14 +15,9 @@ $runKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $runtimeRoot = Join-Path $env:LOCALAPPDATA 'streamdek'
 $pidPath = Join-Path $runtimeRoot 'streamdek.pid'
 $userId = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-$watchPath = Join-Path $PSScriptRoot 'watch-windows.ps1'
-$powerShellPath = (Get-Command powershell.exe).Source
-$watchArguments = '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "{0}" -ExecutablePath "{1}" -ApplicationArguments "{2}"' -f `
-    $watchPath, $ExecutablePath, $ApplicationArguments
-
 $action = New-ScheduledTaskAction `
-    -Execute $powerShellPath `
-    -Argument $watchArguments `
+    -Execute $ExecutablePath `
+    -Argument $ApplicationArguments `
     -WorkingDirectory $WorkingDirectory
 $logonTrigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
 $recoveryTrigger = New-ScheduledTaskTrigger `
