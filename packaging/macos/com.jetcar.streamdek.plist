@@ -6,11 +6,12 @@
   <string>com.jetcar.streamdek</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/Library/Application Support/Streamdek/node</string>
-    <string>/Library/Application Support/Streamdek/dist/app.js</string>
+    <string>/Applications/Streamdek.app/Contents/MacOS/Streamdek</string>
+    <string>--background</string>
+    <string>--supervised</string>
   </array>
   <key>WorkingDirectory</key>
-  <string>/Library/Application Support/Streamdek</string>
+  <string>/Applications</string>
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>

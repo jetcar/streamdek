@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Streamdek
+Comment=Open the Streamdek agent status display
+Exec=/opt/streamdek/streamdek
+Icon=streamdek
+Categories=Utility;
+Terminal=false

@@ -17,5 +17,6 @@ fi
 
 rm -f "$plist"
 rm -rf "$app_dir"
+rm -rf "/Applications/Streamdek.app"
 pkgutil --forget com.jetcar.streamdek >/dev/null 2>&1 || true
 echo "Streamdek was removed."

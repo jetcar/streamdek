@@ -4,7 +4,7 @@ After=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/opt/streamdek/node /opt/streamdek/dist/app.js
+ExecStart=/opt/streamdek/streamdek --background --supervised
 WorkingDirectory=/opt/streamdek
 Restart=on-failure
 RestartSec=5

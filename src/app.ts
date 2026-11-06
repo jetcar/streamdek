@@ -21,7 +21,7 @@ mkdirSync(runtimeRoot, { recursive: true });
 function log(message: string, error?: unknown): void {
   const detail = error instanceof Error ? `${error.name}: ${error.message}` : error == null ? '' : String(error);
   const line = `${new Date().toISOString()} ${message}${detail ? ` — ${detail}` : ''}\n`;
-  process.stdout.write(line);
+  if (process.stdout?.writable) process.stdout.write(line);
   appendFileSync(logPath, line);
 }
 

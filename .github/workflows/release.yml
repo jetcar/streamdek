@@ -49,17 +49,27 @@ jobs:
       - run: npm test
       - run: npm run typecheck
       - run: npm run build
-      - run: npm prune --omit=dev
+
+      - name: Build Windows desktop app
+        if: runner.os == 'Windows'
+        run: npx electron-builder --win dir --x64
+
+      - name: Build macOS desktop app
+        if: runner.os == 'macOS'
+        run: npx electron-builder --mac dir --${{ matrix.arch }}
+
+      - name: Build Linux desktop app
+        if: runner.os == 'Linux'
+        run: npx electron-builder --linux dir --${{ matrix.arch }}
 
       - name: Stage Windows payload
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path release/payload/scripts -Force | Out-Null
-          Copy-Item -Recurse dist, node_modules, web release/payload/
-          Copy-Item README.md, CHANGELOG.md, package.json release/payload/
+          Copy-Item -Recurse release/electron/win-unpacked/* release/payload/
+          Copy-Item README.md, CHANGELOG.md release/payload/
           Copy-Item scripts/uninstall.ps1, scripts/register-windows-task.ps1, scripts/watch-windows.ps1 release/payload/scripts/
-          Copy-Item (Get-Command node).Source release/payload/node.exe
 
       - name: Build Windows installer
         if: runner.os == 'Windows'
@@ -75,17 +85,6 @@ jobs:
           }
           & $iscc "/DAppVersion=$version" "/DPayloadDir=$((Resolve-Path release/payload).Path)" "/DOutputDir=$((Resolve-Path release).Path)" "/DOutputBaseFilename=streamdek-$version-windows-x64-setup" packaging/windows/streamdek.iss
 
-      - name: Stage Unix payload
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p release/payload
-          cp -R dist node_modules web release/payload/
-          cp README.md CHANGELOG.md package.json release/payload/
-          cp -L "$(command -v node)" release/payload/node
-          chmod 0755 release/payload/node
-
       - name: Build macOS installer
         if: runner.os == 'macOS'
         shell: bash
@@ -96,8 +95,10 @@ jobs:
           version="${RELEASE_VERSION#v}"
           root="release/pkg-root"
           app_dir="$root/Library/Application Support/Streamdek"
-          mkdir -p "$app_dir" "$root/Library/LaunchAgents"
-          cp -R release/payload/. "$app_dir/"
+          app_bundle=$(find release/electron -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$app_bundle"
+          mkdir -p "$app_dir" "$root/Library/LaunchAgents" "$root/Applications"
+          cp -R "$app_bundle" "$root/Applications/Streamdek.app"
           cp packaging/macos/uninstall.sh "$app_dir/"
           chmod 0755 "$app_dir/uninstall.sh"
           cp packaging/macos/com.jetcar.streamdek.plist "$root/Library/LaunchAgents/"
@@ -109,7 +110,7 @@ jobs:
             --install-location / \
             "release/streamdek-$version-macos-$ARCH.pkg"
           pkgutil --check-signature "release/streamdek-$version-macos-$ARCH.pkg" || true
-          pkgutil --payload-files "release/streamdek-$version-macos-$ARCH.pkg" | grep -q 'Library/Application Support/Streamdek/dist/app.js'
+          pkgutil --payload-files "release/streamdek-$version-macos-$ARCH.pkg" | grep -q 'Applications/Streamdek.app/Contents/MacOS/Streamdek'
 
       - name: Build Linux installer
         if: runner.os == 'Linux'
@@ -120,9 +121,13 @@ jobs:
           set -euo pipefail
           version="${RELEASE_VERSION#v}"
           root="release/deb-root"
-          mkdir -p "$root/DEBIAN" "$root/opt/streamdek" "$root/usr/lib/systemd/user" "$root/usr/lib/udev/rules.d"
-          cp -R release/payload/. "$root/opt/streamdek/"
+          app_dir=$(find release/electron -maxdepth 1 -type d -name 'linux*-unpacked' -print -quit)
+          test -n "$app_dir"
+          mkdir -p "$root/DEBIAN" "$root/opt/streamdek" "$root/usr/lib/systemd/user" "$root/usr/lib/udev/rules.d" "$root/usr/share/applications" "$root/usr/share/icons/hicolor/512x512/apps"
+          cp -R "$app_dir"/. "$root/opt/streamdek/"
           cp packaging/linux/streamdek.service "$root/usr/lib/systemd/user/"
+          cp packaging/linux/streamdek.desktop "$root/usr/share/applications/"
+          cp assets/tray-icon.png "$root/usr/share/icons/hicolor/512x512/apps/streamdek.png"
           cp scripts/50-elgato-stream-deck-user.rules "$root/usr/lib/udev/rules.d/"
           cp packaging/linux/postinst packaging/linux/prerm packaging/linux/postrm "$root/DEBIAN/"
           chmod 0755 "$root/DEBIAN/postinst" "$root/DEBIAN/prerm" "$root/DEBIAN/postrm"
@@ -135,7 +140,7 @@ jobs:
           dpkg-deb --root-owner-group --build "$root" "release/streamdek-$version-linux-$ARCH.deb"
           dpkg-deb --info "release/streamdek-$version-linux-$ARCH.deb"
           dpkg-deb --contents "release/streamdek-$version-linux-$ARCH.deb" > release/deb-contents.txt
-          grep -q './opt/streamdek/dist/app.js' release/deb-contents.txt
+          grep -q './opt/streamdek/streamdek' release/deb-contents.txt
 
       - uses: actions/upload-artifact@v7
         with:
@@ -203,4 +208,4 @@ jobs:
             --verify-tag \
             --generate-notes \
             --title "Streamdek $GITHUB_REF_NAME" \
-            --notes "Desktop installers include Node.js and production dependencies. The Android APK is signed and installable. Desktop packages are currently unsigned."
+            --notes "Desktop installers include the Streamdek tray application and production dependencies. The Android APK is signed and installable. Desktop packages are currently unsigned."

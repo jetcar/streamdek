@@ -1,13 +1,17 @@
 {
   "name": "streamdek-codex-status",
-  "version": "1.10.2",
+  "version": "1.11.0",
+  "description": "Cross-platform Stream Deck status display for Codex and Claude Code",
+  "author": "jetcar",
   "private": true,
   "type": "module",
+  "main": "dist/tray.js",
   "engines": {
     "node": ">=24"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "desktop:dir": "electron-builder --dir",
     "start": "node dist/app.js",
     "dev": "tsx src/app.ts",
     "test": "vitest run",
@@ -22,8 +26,36 @@
   "devDependencies": {
     "@types/node": "^24.10.0",
     "@types/ws": "^8.18.2",
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^4.0.4"
+  },
+  "build": {
+    "appId": "com.jetcar.streamdek",
+    "productName": "Streamdek",
+    "asar": true,
+    "files": [
+      "dist/**",
+      "web/**",
+      "assets/**",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release/electron"
+    },
+    "icon": "assets/tray-icon.png",
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": "dir"
+    },
+    "win": {
+      "target": "dir"
+    },
+    "linux": {
+      "category": "Utility",
+      "target": "dir"
+    }
   }
 }

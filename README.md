@@ -57,7 +57,9 @@ No app installation is needed. Keep the Streamdek desktop service running, and a
 
 ## Install
 
-Download the native installer for your operating system from the [latest release](https://github.com/jetcar/streamdek/releases/latest). Node.js and production dependencies are included.
+Download the native installer for your operating system from the [latest release](https://github.com/jetcar/streamdek/releases/latest). The desktop runtime and production dependencies are included.
+
+Streamdek starts hidden in the Windows notification area, macOS menu bar, or Linux system tray. Click its icon to open the dashboard; use the tray menu to restart or exit.
 
 | Platform | Installer |
 |---|---|

@@ -7,20 +7,17 @@ if [ "$(uname -s)" != "Linux" ]; then
 fi
 
 project_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-node_path=$(command -v node)
 service_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 service_path="$service_dir/streamdek.service"
 rules_source="$project_root/scripts/50-elgato-stream-deck-user.rules"
 rules_target="/etc/udev/rules.d/50-elgato-stream-deck-user.rules"
 
 cd "$project_root"
-if [ -d "$project_root/src" ]; then
-  npm ci
-  npm run build
-elif [ -f "$project_root/dist/app.js" ]; then
-  npm ci --omit=dev
-else
-  echo "Neither source files nor a prebuilt release were found." >&2
+npm ci
+npm run build
+electron_path="$project_root/node_modules/electron/dist/electron"
+if [ ! -x "$electron_path" ]; then
+  echo "Electron desktop runtime was not found." >&2
   exit 1
 fi
 
@@ -36,8 +33,7 @@ if [ ! -f "$rules_target" ] || ! cmp -s "$rules_source" "$rules_target"; then
 fi
 
 mkdir -p "$service_dir"
-escaped_node=$(printf '%s' "$node_path" | sed 's/\\/\\\\/g; s/"/\\"/g')
-escaped_app=$(printf '%s' "$project_root/dist/app.js" | sed 's/\\/\\\\/g; s/"/\\"/g')
+escaped_electron=$(printf '%s' "$electron_path" | sed 's/\\/\\\\/g; s/"/\\"/g')
 escaped_root=$(printf '%s' "$project_root" | sed 's/\\/\\\\/g; s/"/\\"/g')
 
 cat > "$service_path" <<EOF
@@ -46,7 +42,7 @@ Description=Streamdek Codex status display
 
 [Service]
 Type=simple
-ExecStart="$escaped_node" "$escaped_app"
+ExecStart="$escaped_electron" "$escaped_root" --background --supervised
 WorkingDirectory="$escaped_root"
 Restart=on-failure
 RestartSec=5

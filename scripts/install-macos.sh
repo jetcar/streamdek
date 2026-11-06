@@ -7,7 +7,6 @@ if [ "$(uname -s)" != "Darwin" ]; then
 fi
 
 project_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-node_path=$(command -v node)
 label="com.jetcar.streamdek"
 agent_dir="$HOME/Library/LaunchAgents"
 agent_path="$agent_dir/$label.plist"
@@ -18,19 +17,16 @@ xml_escape() {
 }
 
 cd "$project_root"
-if [ -d "$project_root/src" ]; then
-  npm ci
-  npm run build
-elif [ -f "$project_root/dist/app.js" ]; then
-  npm ci --omit=dev
-else
-  echo "Neither source files nor a prebuilt release were found." >&2
+npm ci
+npm run build
+electron_path="$project_root/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
+if [ ! -x "$electron_path" ]; then
+  echo "Electron desktop runtime was not found." >&2
   exit 1
 fi
 
 mkdir -p "$agent_dir" "$state_dir"
-escaped_node=$(xml_escape "$node_path")
-escaped_app=$(xml_escape "$project_root/dist/app.js")
+escaped_electron=$(xml_escape "$electron_path")
 escaped_root=$(xml_escape "$project_root")
 escaped_out=$(xml_escape "$state_dir/launchd.out.log")
 escaped_err=$(xml_escape "$state_dir/launchd.err.log")
@@ -44,8 +40,10 @@ cat > "$agent_path" <<EOF
   <string>$label</string>
   <key>ProgramArguments</key>
   <array>
-    <string>$escaped_node</string>
-    <string>$escaped_app</string>
+    <string>$escaped_electron</string>
+    <string>$escaped_root</string>
+    <string>--background</string>
+    <string>--supervised</string>
   </array>
   <key>WorkingDirectory</key>
   <string>$escaped_root</string>

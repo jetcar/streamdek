@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.11.0 - 2026-11-06
+
+### Added
+
+- Windows, macOS, and Linux now run as hidden desktop tray applications.
+- Clicking the tray icon opens the Streamdek dashboard.
+- The tray menu can open, restart, or exit Streamdek.
+
+### Changed
+
+- Desktop installers now package the Electron desktop runtime instead of launching a console Node.js process.
+
 ## 1.10.2 - 2026-11-05
 
 ### Fixed

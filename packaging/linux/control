@@ -5,6 +5,7 @@ Maintainer: jetcar <noreply@github.com>
 Installed-Size: @INSTALLED_SIZE@
 Section: utils
 Priority: optional
+Depends: libgtk-3-0, libnss3, libxss1, libatspi2.0-0, libgbm1
 Description: Stream Deck status display for Codex and Claude Code
  Shows live agent session and scheduled automation status on an Elgato
  Stream Deck and opens the corresponding session when a button is pressed.

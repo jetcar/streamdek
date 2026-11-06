@@ -5,7 +5,7 @@ label="com.jetcar.streamdek"
 plist="/Library/LaunchAgents/$label.plist"
 console_uid=$(stat -f '%u' /dev/console)
 
-chmod 0755 "/Library/Application Support/Streamdek/node"
+chmod 0755 "/Applications/Streamdek.app/Contents/MacOS/Streamdek"
 chown root:wheel "$plist"
 chmod 0644 "$plist"
 

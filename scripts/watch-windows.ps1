@@ -1,15 +1,16 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string]$NodePath,
+    [string]$ExecutablePath,
 
-    [Parameter(Mandatory = $true)]
-    [string]$AppPath
+    [string]$ApplicationArguments = '--background --supervised'
 )
 
 $ErrorActionPreference = 'Continue'
 
 while ($true) {
-    & $NodePath $AppPath
+    $process = Start-Process -FilePath $ExecutablePath -ArgumentList $ApplicationArguments -Wait -PassThru
+    if ($process.ExitCode -eq 0) {
+        break
+    }
     Start-Sleep -Seconds 5
 }
-

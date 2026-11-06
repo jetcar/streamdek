@@ -10,9 +10,11 @@ describe('Windows watchdog packaging', () => {
     const registration = readFileSync(join(root, 'scripts', 'register-windows-task.ps1'), 'utf8');
 
     expect(watchdog).toContain('while ($true)');
-    expect(watchdog).toContain('& $NodePath $AppPath');
+    expect(watchdog).toContain('Start-Process -FilePath $ExecutablePath');
+    expect(watchdog).toContain('if ($process.ExitCode -eq 0)');
     expect(registration).toContain("$taskName = 'Streamdek'");
     expect(registration).toContain("Join-Path $PSScriptRoot 'watch-windows.ps1'");
+    expect(registration).toContain('-WindowStyle Hidden');
     expect(registration).toContain('$recoveryTrigger = New-ScheduledTaskTrigger');
     expect(registration).toContain('-RepetitionInterval (New-TimeSpan -Minutes 1)');
     expect(registration).toContain('-AllowStartIfOnBatteries');
@@ -28,6 +30,7 @@ describe('Windows watchdog packaging', () => {
     expect(workflow).toContain('scripts/register-windows-task.ps1');
     expect(workflow).toContain('scripts/watch-windows.ps1');
     expect(installer).toContain('register-windows-task.ps1');
+    expect(installer).toContain('-ExecutablePath ""{app}\\Streamdek.exe""');
   });
 
   it('removes both current and legacy startup registrations on uninstall', () => {

@@ -1,9 +1,8 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string]$NodePath,
+    [string]$ExecutablePath,
 
-    [Parameter(Mandatory = $true)]
-    [string]$AppPath,
+    [string]$ApplicationArguments = '--background --supervised',
 
     [Parameter(Mandatory = $true)]
     [string]$WorkingDirectory
@@ -18,8 +17,8 @@ $pidPath = Join-Path $runtimeRoot 'streamdek.pid'
 $userId = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 $watchPath = Join-Path $PSScriptRoot 'watch-windows.ps1'
 $powerShellPath = (Get-Command powershell.exe).Source
-$watchArguments = '-NoProfile -ExecutionPolicy Bypass -File "{0}" -NodePath "{1}" -AppPath "{2}"' -f `
-    $watchPath, $NodePath, $AppPath
+$watchArguments = '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "{0}" -ExecutablePath "{1}" -ApplicationArguments "{2}"' -f `
+    $watchPath, $ExecutablePath, $ApplicationArguments
 
 $action = New-ScheduledTaskAction `
     -Execute $powerShellPath `
