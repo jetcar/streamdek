@@ -2,6 +2,8 @@ export type CardStatus = 'asking' | 'thinking' | 'error' | 'scheduled' | 'update
 
 export interface ThreadRecord {
   id: string;
+  parentId?: string;
+  threadSource?: string;
   title: string;
   subtitle?: string;
   updatedAt: number;

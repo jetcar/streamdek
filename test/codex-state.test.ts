@@ -1,5 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { agentMessageDetails, codexThreadSubtitle, codexThreadTitle } from '../src/codex-state.js';
+import {
+  agentMessageDetails,
+  codexParentThreadId,
+  codexThreadSubtitle,
+  codexThreadTitle,
+} from '../src/codex-state.js';
+
+describe('codexParentThreadId', () => {
+  it('reads attached and spawned-agent parent links', () => {
+    expect(codexParentThreadId({ attachedThreadParentId: 'attached-parent' })).toBe('attached-parent');
+    expect(codexParentThreadId({
+      source: JSON.stringify({
+        subagent: { thread_spawn: { parent_thread_id: 'spawn-parent' } },
+      }),
+    })).toBe('spawn-parent');
+  });
+
+  it('ignores unrelated or invalid source metadata', () => {
+    expect(codexParentThreadId({ source: 'vscode' })).toBeUndefined();
+    expect(codexParentThreadId({ source: JSON.stringify({ subagent: { other: 'guardian' } }) })).toBeUndefined();
+  });
+});
 
 describe('codexThreadTitle', () => {
   it('prefers the working folder over the saved session name and first prompt', () => {

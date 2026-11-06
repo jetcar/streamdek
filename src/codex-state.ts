@@ -56,6 +56,22 @@ export function agentMessageDetails(itemJson: string): { hasQuestions: boolean; 
   }
 }
 
+export function codexParentThreadId(row: {
+  attachedThreadParentId?: unknown;
+  source?: unknown;
+}): string | undefined {
+  const attachedParent = nonEmpty(row.attachedThreadParentId);
+  if (attachedParent) return attachedParent;
+  try {
+    const source = JSON.parse(String(row.source ?? '')) as {
+      subagent?: { thread_spawn?: { parent_thread_id?: unknown } };
+    };
+    return nonEmpty(source.subagent?.thread_spawn?.parent_thread_id);
+  } catch {
+    return undefined;
+  }
+}
+
 export function codexThreadTitle(row: {
   cwd?: unknown;
   name?: unknown;
@@ -126,7 +142,7 @@ function readThreads(paths: Paths): ThreadRecord[] {
 
   return withDatabase(paths.state, (db) => {
     const rows = db.prepare(`
-      SELECT id, cwd, name, title, preview, updated_at
+      SELECT id, cwd, name, title, preview, updated_at, source, thread_source, attached_thread_parent_id
       FROM threads
       WHERE archived = 0
       ORDER BY updated_at DESC
@@ -139,6 +155,11 @@ function readThreads(paths: Paths): ThreadRecord[] {
       const detail = turn ? details.get(turn.turnId) : undefined;
       return {
         id,
+        parentId: codexParentThreadId({
+          attachedThreadParentId: row.attached_thread_parent_id,
+          source: row.source,
+        }),
+        threadSource: nonEmpty(row.thread_source),
         title: codexThreadTitle(row),
         subtitle: codexThreadSubtitle(row),
         updatedAt: secondsToMs(row.updated_at),
