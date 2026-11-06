@@ -7,6 +7,7 @@ const root = process.cwd();
 describe('desktop tray application', () => {
   it('starts hidden and provides open, restart, and exit actions', () => {
     const tray = readFileSync(join(root, 'src', 'tray.ts'), 'utf8');
+    const service = readFileSync(join(root, 'src', 'app.ts'), 'utf8');
 
     expect(tray).toContain("process.argv.includes('--background')");
     expect(tray).toContain("label: 'Open Streamdek'");
@@ -15,6 +16,7 @@ describe('desktop tray application', () => {
     expect(tray).toContain("tray.on('click', showWindow)");
     expect(tray).toContain("writeFileSync(intentionalExitPath, 'stopped by user')");
     expect(tray).toContain('app.exit(1)');
+    expect(service).toContain('if (!process.versions.electron && process.stdout?.writable)');
   });
 
   it('packages the Electron tray shell on every desktop OS', () => {
