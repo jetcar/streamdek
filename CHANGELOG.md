@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.11.2 - 2026-11-06
+
+### Fixed
+
+- Windows starts the tray application directly without leaving a PowerShell terminal open.
+- Tray application logs are written only to the Streamdek log file.
+
 ## 1.11.1 - 2026-11-06
 
 ### Fixed
