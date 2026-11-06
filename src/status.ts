@@ -82,6 +82,71 @@ function latestRoutineRuns(threads: ThreadRecord[]): ThreadRecord[] {
   return [...ordinary, ...routines.values()];
 }
 
+function aggregateTaskStatus(root: ThreadRecord, members: ThreadRecord[]): Pick<ThreadRecord, 'turnStatus' | 'hasQuestions'> {
+  if (members.some((thread) => thread.turnStatus === 'inProgress' && thread.hasQuestions)) {
+    return { turnStatus: 'inProgress', hasQuestions: true };
+  }
+  if (members.some((thread) => thread.turnStatus === 'inProgress')) {
+    return { turnStatus: 'inProgress', hasQuestions: false };
+  }
+  if (root.turnStatus) return { turnStatus: root.turnStatus, hasQuestions: root.hasQuestions };
+  if (members.some((thread) => thread.turnStatus === 'failed')) {
+    return { turnStatus: 'failed', hasQuestions: false };
+  }
+  if (members.some((thread) => thread.turnStatus === 'completed' || thread.turnStatus === 'interrupted')) {
+    return { turnStatus: 'completed', hasQuestions: false };
+  }
+  return { turnStatus: undefined, hasQuestions: false };
+}
+
+export function aggregateCodexTaskTrees(threads: ThreadRecord[]): ThreadRecord[] {
+  const codexById = new Map(
+    threads.filter((thread) => thread.provider !== 'claude').map((thread) => [thread.id, thread]),
+  );
+  const groups = new Map<string, ThreadRecord[]>();
+  const visible: ThreadRecord[] = [];
+
+  for (const thread of threads) {
+    if (thread.provider === 'claude') {
+      visible.push(thread);
+      continue;
+    }
+    if (!thread.parentId) {
+      if (thread.threadSource !== 'subagent' && thread.threadSource !== 'guardian_review') {
+        visible.push(thread);
+        if (!groups.has(thread.id)) groups.set(thread.id, [thread]);
+      }
+      continue;
+    }
+
+    let current = thread;
+    const visited = new Set([thread.id]);
+    while (current.parentId) {
+      const parent = codexById.get(current.parentId);
+      if (!parent || visited.has(parent.id)) {
+        current = thread;
+        break;
+      }
+      visited.add(parent.id);
+      current = parent;
+    }
+    if (current === thread || current.threadSource === 'subagent' || current.threadSource === 'guardian_review') continue;
+    const members = groups.get(current.id) ?? [current];
+    members.push(thread);
+    groups.set(current.id, members);
+  }
+
+  return visible.map((thread) => {
+    const members = groups.get(thread.id);
+    if (!members || members.length === 1) return thread;
+    return {
+      ...thread,
+      ...aggregateTaskStatus(thread, members),
+      updatedAt: Math.max(...members.map((member) => member.updatedAt)),
+    };
+  });
+}
+
 function automationCard(automation: AutomationRecord, now: number): DeckCard {
   const targetUrl = automation.targetThreadId
     ? `codex://threads/${encodeURIComponent(automation.targetThreadId)}`
@@ -114,7 +179,7 @@ export function buildCards(snapshot: CodexSnapshot, options: CardOptions = {}): 
   const staleAfterMs = options.staleAfterMs ?? 24 * 60 * 60 * 1000;
   const limit = options.limit ?? 15;
 
-  const threads = latestRoutineRuns(snapshot.threads)
+  const threads = aggregateCodexTaskTrees(latestRoutineRuns(snapshot.threads))
     .filter((thread) => now - thread.updatedAt <= staleAfterMs)
     .map(threadCard)
     .sort((a, b) => b.timestamp - a.timestamp);

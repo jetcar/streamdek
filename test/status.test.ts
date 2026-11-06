@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildCards, relativeTime, stabilizeActiveCards, threadStatus } from '../src/status.js';
+import {
+  aggregateCodexTaskTrees,
+  buildCards,
+  relativeTime,
+  stabilizeActiveCards,
+  threadStatus,
+} from '../src/status.js';
 import type { CodexSnapshot, ThreadRecord } from '../src/types.js';
 
 const NOW = Date.UTC(2026, 9, 22, 12, 0, 0);
@@ -28,6 +34,63 @@ describe('threadStatus', () => {
 });
 
 describe('buildCards', () => {
+  it('folds nested subagents into their user task and uses their active status', () => {
+    const snapshot: CodexSnapshot = {
+      threads: [
+        thread({ id: 'root', title: 'streamdek', turnStatus: 'completed', updatedAt: NOW - 2_000 }),
+        thread({
+          id: 'worker',
+          parentId: 'root',
+          threadSource: 'subagent',
+          turnStatus: 'inProgress',
+          updatedAt: NOW - 1_000,
+        }),
+        thread({
+          id: 'reviewer',
+          parentId: 'worker',
+          threadSource: 'subagent',
+          turnStatus: 'inProgress',
+          hasQuestions: true,
+          updatedAt: NOW,
+        }),
+      ],
+      automations: [],
+    };
+
+    const cards = buildCards(snapshot, { now: NOW });
+    expect(cards).toHaveLength(1);
+    expect(cards[0]).toMatchObject({
+      id: 'codex:root',
+      title: 'streamdek',
+      status: 'asking',
+      timestamp: NOW,
+      target: { kind: 'url', value: 'codex://threads/root' },
+    });
+  });
+
+  it('uses the root result after background work finishes', () => {
+    const aggregated = aggregateCodexTaskTrees([
+      thread({ id: 'root', turnStatus: 'completed' }),
+      thread({ id: 'worker', parentId: 'root', threadSource: 'subagent', turnStatus: 'failed' }),
+    ]);
+
+    expect(aggregated).toHaveLength(1);
+    expect(threadStatus(aggregated[0])).toBe('done');
+  });
+
+  it('hides internal sessions whose parent is unavailable', () => {
+    const snapshot: CodexSnapshot = {
+      threads: [
+        thread({ id: 'user-task', threadSource: 'user' }),
+        thread({ id: 'orphan', parentId: 'missing', threadSource: 'subagent', turnStatus: 'inProgress' }),
+        thread({ id: 'guardian', threadSource: 'guardian_review', turnStatus: 'inProgress' }),
+      ],
+      automations: [],
+    };
+
+    expect(buildCards(snapshot, { now: NOW }).map((card) => card.id)).toEqual(['codex:user-task']);
+  });
+
   it('hides stale threads but retains active automations', () => {
     const snapshot: CodexSnapshot = {
       threads: [thread({ updatedAt: NOW - 25 * 60 * 60 * 1_000 })],
