@@ -19,6 +19,7 @@ Supports Windows, macOS, and Linux without the Elgato desktop application. Andro
 Ordinary tasks disappear after 24 hours without activity. Active automations stay visible.
 Codex and Claude Code cards show the working-folder name, falling back to the saved session name. Claude cards include a `CLAUDE` footer and reopen in a new terminal with `claude --resume`. Scheduled-task runs are grouped into one card per routine; its status and click target follow the most recent run.
 Session cards show a compact excerpt from the latest agent response on the line below the name. Working and asking cards retain their button position while they remain active, so response updates do not make them jump around.
+Codex subagents and background agent tasks are folded into their parent user task instead of occupying separate cards. Active child work or questions keep the parent card in `WORKING` or `ASKING`; after all child work finishes, the parent task's final status is shown.
 
 Session cards are ordered by latest activity, independent of status, so finishing a task changes its color without sending it behind older errors. Active scheduled automations occupy reserved buttons at the end, ordered by their next run.
 

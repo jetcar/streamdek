@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.12.0 - 2026-11-06
+
+### Changed
+
+- Codex subagents and background agent tasks are grouped into their parent user task instead of using separate cards.
+- Parent task status and activity now include nested child agents.
+
 ## 1.11.2 - 2026-11-06
 
 ### Fixed

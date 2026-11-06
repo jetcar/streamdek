@@ -1,6 +1,6 @@
 {
   "name": "streamdek-codex-status",
-  "version": "1.11.2",
+  "version": "1.12.0",
   "description": "Cross-platform Stream Deck status display for Codex and Claude Code",
   "author": "jetcar",
   "private": true,
