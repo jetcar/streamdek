@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.12.1 - 2026-11-23
+
+### Fixed
+
+- Streamdek exits and is relaunched automatically when a status refresh stalls for 30 seconds.
+
 ## 1.12.0 - 2026-11-06
 
 ### Changed

@@ -97,6 +97,7 @@ Optional environment variables:
 
 - `STREAMDEK_STALE_HOURS` — task expiry, default `24`.
 - `STREAMDEK_POLL_MS` — refresh interval, default `2000`.
+- `STREAMDEK_TICK_TIMEOUT_MS` — stalled-refresh restart timeout, default `30000`.
 - `STREAMDEK_WIFI_PORT` — Android and web display server port, default `8910`.
 - `STREAMDEK_STATE_DIR` — absolute directory for logs and the process file.
 - `CODEX_HOME` — Codex state directory, default `~/.codex`.
