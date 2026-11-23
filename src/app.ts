@@ -5,6 +5,7 @@ import { ClaudeStateReader } from './claude-state.js';
 import { DeckController } from './deck.js';
 import { approveDeckTarget, openDeckTarget, requestDeviceApproval, runtimeDirectory } from './platform.js';
 import { buildCards, stabilizeActiveCards } from './status.js';
+import { withTimeout } from './timeout.js';
 import type { DeckCard } from './types.js';
 import { installedVersion, UpdateChecker } from './update.js';
 import { WifiServer } from './wifi.js';
@@ -15,6 +16,7 @@ const pidPath = join(runtimeRoot, 'streamdek.pid');
 const pollMs = Number(process.env.STREAMDEK_POLL_MS ?? 2_000);
 const staleHours = Number(process.env.STREAMDEK_STALE_HOURS ?? 24);
 const wifiPort = Number(process.env.STREAMDEK_WIFI_PORT ?? 8_910);
+const tickTimeoutMs = Number(process.env.STREAMDEK_TICK_TIMEOUT_MS ?? 30_000);
 
 mkdirSync(runtimeRoot, { recursive: true });
 
@@ -120,7 +122,12 @@ async function tick(): Promise<void> {
 
 async function loop(): Promise<void> {
   while (!stopping) {
-    await tick();
+    try {
+      await withTimeout(tick(), tickTimeoutMs, `Status refresh exceeded ${tickTimeoutMs} ms`);
+    } catch (error) {
+      log('Status refresh stalled; restarting Streamdek', error);
+      process.exit(1);
+    }
     await new Promise((resolve) => setTimeout(resolve, pollMs));
   }
 }
